@@ -1,0 +1,45 @@
+[workspace]
+members = ["crates/litsdf_core", "crates/litsdf_render", "crates/litsdf_editor", "crates/litsdf_cli"]
+resolver = "2"
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
+uuid = { version = "1", features = ["serde", "v4"] }
+glam = "0.30"
+clap = { version = "4", features = ["derive"] }
+bevy = "0.18"
+bevy_egui = "0.39"
+egui = "0.33"
+eframe = "0.33"
+litui = { git = "https://github.com/fjkorf/litui" }
+egui-snarl = { version = "0.9", features = ["serde"] }
+tempfile = "3"
+
+# Internal crates
+litsdf_core = { path = "crates/litsdf_core" }
+litsdf_render = { path = "crates/litsdf_render" }
+litsdf_editor = { path = "crates/litsdf_editor" }
+
+[package]
+name = "litsdf"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "litsdf"
+path = "src/main.rs"
+
+[[bin]]
+name = "litsdf-viewer"
+path = "src/bin/viewer.rs"
+
+[dependencies]
+litsdf_core = { workspace = true }
+litsdf_render = { workspace = true }
+litsdf_editor = { workspace = true }
+bevy = { workspace = true }
+bevy_egui = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

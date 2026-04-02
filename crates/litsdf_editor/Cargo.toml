@@ -1,0 +1,19 @@
+[package]
+name = "litsdf_editor"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+litsdf_core = { workspace = true }
+litsdf_render = { workspace = true }
+bevy = { workspace = true }
+bevy_egui = { workspace = true }
+egui = { workspace = true }
+egui-snarl = { workspace = true }
+litui = { workspace = true }
+eframe = { workspace = true }
+serde = { workspace = true }
+serde_yaml = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

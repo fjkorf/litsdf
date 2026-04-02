@@ -1,0 +1,14 @@
+[package]
+name = "litsdf_core"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { workspace = true }
+serde_yaml = { workspace = true }
+uuid = { workspace = true }
+glam = { workspace = true }
+dirs = "6"
+
+[dev-dependencies]
+tempfile = { workspace = true }

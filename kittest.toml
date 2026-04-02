@@ -1,0 +1,2 @@
+output_path = "tests/screenshots"
+threshold = 0.6

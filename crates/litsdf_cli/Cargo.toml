@@ -1,0 +1,17 @@
+[package]
+name = "litsdf-cli"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "litsdf-cli"
+path = "src/main.rs"
+
+[dependencies]
+litsdf_core = { workspace = true }
+clap = { workspace = true }
+uuid = { workspace = true }
+serde_yaml = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
