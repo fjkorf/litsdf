@@ -54,21 +54,8 @@ pub fn sync_scene_to_shader(
     let t = time.elapsed_secs();
 
     if state.dirty {
-        // Regenerate shader if topology changed
-        let new_hash = crate::codegen::topology_hash(&state.scene);
-        if new_hash != state.topology_hash {
-            match crate::codegen::generate_shader(&state.scene) {
-                Ok(wgsl) => {
-                    let path = std::path::Path::new("assets/shaders/sdf_raymarch.wgsl");
-                    if let Err(e) = std::fs::write(path, &wgsl) {
-                        eprintln!("Shader write error: {e}");
-                    }
-                    state.topology_hash = new_hash;
-                }
-                Err(e) => eprintln!("Shader codegen error (using fallback): {e}"),
-            }
-        }
-
+        // Codegen disabled — using fallback loop-based shader
+        // TODO: re-enable when codegen WGSL is validated via naga
         state.dirty = false;
         let mut params = build_shader_params(&state.scene);
         params.time = t;

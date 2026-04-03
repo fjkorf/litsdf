@@ -5,3 +5,5 @@
 *.swp
 *.swo
 tests/screenshots/*.png
+# Runtime shader copy (generated from crate source by codegen)
+assets/shaders/

@@ -1020,7 +1020,7 @@ pub fn sync_scene_to_shader(
 ```
 
 
-#### `build_shader_params` (line 89)
+#### `build_shader_params` (line 76)
 
 ```rust
 pub fn build_shader_params(scene_data: &SdfScene) -> SdfShaderParams

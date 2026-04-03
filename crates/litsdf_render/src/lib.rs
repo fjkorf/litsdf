@@ -11,6 +11,9 @@ pub struct SdfRenderPlugin;
 
 impl Plugin for SdfRenderPlugin {
     fn build(&self, app: &mut App) {
+        // Ensure the runtime shader exists before Bevy tries to load it
+        codegen::ensure_runtime_shader();
+
         app.add_plugins(MaterialPlugin::<shader::SdfMaterial>::default())
             .init_resource::<scene_sync::SdfSceneState>()
             .init_resource::<picking::ClickTracker>()

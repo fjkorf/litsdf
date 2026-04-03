@@ -109,7 +109,7 @@ The SDF is rendered on a large Cuboid (40x40x40) centered at origin. The camera 
 
 ## Shader File Location
 
-The WGSL shader lives at `crates/litsdf_render/assets/shaders/sdf_raymarch.wgsl`. The `assets/shaders/` directory at the workspace root is a **symlink** to this location. Bevy loads from the root `assets/` path at runtime. Always edit the crate copy — the symlink ensures Bevy sees the same file.
+The WGSL source shader lives at `crates/litsdf_render/assets/shaders/sdf_raymarch.wgsl` (committed to repo). The runtime copy at `assets/shaders/sdf_raymarch.wgsl` is **generated** (gitignored) — created on startup by `ensure_runtime_shader()` from the embedded fallback. Codegen may later overwrite the runtime copy. Always edit the crate source, never the runtime copy.
 
 ## ShaderShape Struct Alignment (Critical Gotcha)
 
@@ -178,9 +178,11 @@ The shader is split into three parts:
 - Generated body (~50 lines) — `sdf_scene()` and `sdf_scene_material()` with unrolled shape evaluation
 - `sdf_postamble.wgsl` (181 lines) — normals, shadows, AO, ray march, PBR lighting, fragment shader
 
-`codegen::generate_shader(scene)` walks the flattened shape list and emits static indexed code: `params.shapes[0]`, `params.shapes[1]`... with no loop, no switch. The existing uniform array is still used for parameter passing — codegen only changes the evaluation structure.
+`codegen::generate_shader(scene)` walks the flattened shape list and emits static indexed code with unique variable names per shape. The existing uniform array is still used for parameter passing.
 
-`codegen::topology_hash(scene)` detects when recompilation is needed (shape count, primitive types, combination ops, modifier flags change). On topology change, the generated WGSL is written to `assets/shaders/sdf_raymarch.wgsl` and Bevy hot-reloads it.
+**Currently disabled** pending naga validation of generated WGSL on Metal. The fallback loop-based shader handles all scenes correctly via `params.shape_count`. Codegen infrastructure (topology_hash, generate_shader, preamble/postamble split) is in place for future re-enablement.
+
+**Critical lesson learned:** codegen must NEVER write to the source shader file. The runtime copy at `assets/shaders/` is separate from the source at `crates/litsdf_render/assets/shaders/`. A previous symlink-based approach corrupted the source and broke rendering.
 
 ## Animation
 

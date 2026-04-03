@@ -424,30 +424,31 @@ fn combine_blend(d_scene: f32, d_shape: f32, op: u32, k: f32) -> vec2<f32> {
     }
 }
 
+// --- Distance-only scene evaluation (for normals, shadows, AO) ---
 
-// --- Generated: distance-only scene evaluation ---
 fn sdf_scene(p: vec3<f32>) -> f32 {
+    if params.shape_count == 0u {
+        return MAX_DIST;
+    }
+
     var d = eval_shape(p, params.shapes[0]);
-    {
-        let s = params.shapes[1u];
-        let d_s = eval_shape(p, s);
-        d = combine_blend(d, d_s, s.combination_op, s.smooth_k).x;
+
+    for (var i = 1u; i < params.shape_count; i++) {
+        let shape = params.shapes[i];
+        let d_shape = eval_shape(p, shape);
+        d = combine_blend(d, d_shape, shape.combination_op, shape.smooth_k).x;
     }
-    {
-        let s = params.shapes[2u];
-        let d_s = eval_shape(p, s);
-        d = combine_blend(d, d_s, s.combination_op, s.smooth_k).x;
-    }
-    {
-        let s = params.shapes[3u];
-        let d_s = eval_shape(p, s);
-        d = combine_blend(d, d_s, s.combination_op, s.smooth_k).x;
-    }
+
     return d;
 }
 
-// --- Generated: material scene evaluation ---
+// --- Material scene evaluation (at hit point only) ---
+
 fn sdf_scene_material(p: vec3<f32>) -> MatResult {
+    if params.shape_count == 0u {
+        return MatResult(vec3<f32>(0.5, 0.5, 0.5), 0.5, 0.0, 0.0, 0u);
+    }
+
     let s0 = params.shapes[0];
     var result = MatResult(
         get_shape_color(s0, p),
@@ -457,44 +458,24 @@ fn sdf_scene_material(p: vec3<f32>) -> MatResult {
         s0.color_mode,
     );
     var d = eval_shape(p, s0);
-    {
-        let s = params.shapes[1u];
-        let d_s = eval_shape(p, s);
-        let blend = combine_blend(d, d_s, s.combination_op, s.smooth_k);
+
+    for (var i = 1u; i < params.shape_count; i++) {
+        let shape = params.shapes[i];
+        let d_shape = eval_shape(p, shape);
+        let blend = combine_blend(d, d_shape, shape.combination_op, shape.smooth_k);
         let t = blend.y;
+
         d = blend.x;
-        result.color = mix(result.color, get_shape_color(s, p), t);
-        result.roughness = mix(result.roughness, s.roughness, t);
-        result.metallic = mix(result.metallic, s.metallic, t);
-        result.fresnel_power = mix(result.fresnel_power, s.fresnel_power, t);
-        if t > 0.5 { result.color_mode = s.color_mode; }
+        result.color = mix(result.color, get_shape_color(shape, p), t);
+        result.roughness = mix(result.roughness, shape.roughness, t);
+        result.metallic = mix(result.metallic, shape.metallic, t);
+        result.fresnel_power = mix(result.fresnel_power, shape.fresnel_power, t);
+        if t > 0.5 { result.color_mode = shape.color_mode; }
     }
-    {
-        let s = params.shapes[2u];
-        let d_s = eval_shape(p, s);
-        let blend = combine_blend(d, d_s, s.combination_op, s.smooth_k);
-        let t = blend.y;
-        d = blend.x;
-        result.color = mix(result.color, get_shape_color(s, p), t);
-        result.roughness = mix(result.roughness, s.roughness, t);
-        result.metallic = mix(result.metallic, s.metallic, t);
-        result.fresnel_power = mix(result.fresnel_power, s.fresnel_power, t);
-        if t > 0.5 { result.color_mode = s.color_mode; }
-    }
-    {
-        let s = params.shapes[3u];
-        let d_s = eval_shape(p, s);
-        let blend = combine_blend(d, d_s, s.combination_op, s.smooth_k);
-        let t = blend.y;
-        d = blend.x;
-        result.color = mix(result.color, get_shape_color(s, p), t);
-        result.roughness = mix(result.roughness, s.roughness, t);
-        result.metallic = mix(result.metallic, s.metallic, t);
-        result.fresnel_power = mix(result.fresnel_power, s.fresnel_power, t);
-        if t > 0.5 { result.color_mode = s.color_mode; }
-    }
+
     return result;
 }
+
 // --- Normals ---
 
 fn calc_normal(p: vec3<f32>) -> vec3<f32> {

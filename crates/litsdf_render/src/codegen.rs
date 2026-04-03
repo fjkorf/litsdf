@@ -47,11 +47,8 @@ fn write_sdf_scene(out: &mut String, count: usize) -> Result<(), String> {
     writeln!(out, "fn sdf_scene(p: vec3<f32>) -> f32 {{").map_err(|e| e.to_string())?;
     writeln!(out, "    var d = eval_shape(p, params.shapes[0]);").map_err(|e| e.to_string())?;
     for i in 1..count {
-        writeln!(out, "    {{").map_err(|e| e.to_string())?;
-        writeln!(out, "        let s = params.shapes[{i}u];").map_err(|e| e.to_string())?;
-        writeln!(out, "        let d_s = eval_shape(p, s);").map_err(|e| e.to_string())?;
-        writeln!(out, "        d = combine_blend(d, d_s, s.combination_op, s.smooth_k).x;").map_err(|e| e.to_string())?;
-        writeln!(out, "    }}").map_err(|e| e.to_string())?;
+        writeln!(out, "    let d_{i} = eval_shape(p, params.shapes[{i}u]);").map_err(|e| e.to_string())?;
+        writeln!(out, "    d = combine_blend(d, d_{i}, params.shapes[{i}u].combination_op, params.shapes[{i}u].smooth_k).x;").map_err(|e| e.to_string())?;
     }
     writeln!(out, "    return d;").map_err(|e| e.to_string())?;
     writeln!(out, "}}").map_err(|e| e.to_string())?;
@@ -73,24 +70,26 @@ fn write_sdf_scene_material(out: &mut String, count: usize) -> Result<(), String
     writeln!(out, "    var d = eval_shape(p, s0);").map_err(|e| e.to_string())?;
 
     for i in 1..count {
-        writeln!(out, "    {{").map_err(|e| e.to_string())?;
-        writeln!(out, "        let s = params.shapes[{i}u];").map_err(|e| e.to_string())?;
-        writeln!(out, "        let d_s = eval_shape(p, s);").map_err(|e| e.to_string())?;
-        writeln!(out, "        let blend = combine_blend(d, d_s, s.combination_op, s.smooth_k);").map_err(|e| e.to_string())?;
-        writeln!(out, "        let t = blend.y;").map_err(|e| e.to_string())?;
-        writeln!(out, "        d = blend.x;").map_err(|e| e.to_string())?;
-        writeln!(out, "        result.color = mix(result.color, get_shape_color(s, p), t);").map_err(|e| e.to_string())?;
-        writeln!(out, "        result.roughness = mix(result.roughness, s.roughness, t);").map_err(|e| e.to_string())?;
-        writeln!(out, "        result.metallic = mix(result.metallic, s.metallic, t);").map_err(|e| e.to_string())?;
-        writeln!(out, "        result.fresnel_power = mix(result.fresnel_power, s.fresnel_power, t);").map_err(|e| e.to_string())?;
-        writeln!(out, "        if t > 0.5 {{ result.color_mode = s.color_mode; }}").map_err(|e| e.to_string())?;
-        writeln!(out, "    }}").map_err(|e| e.to_string())?;
+        let s = format!("params.shapes[{i}u]");
+        writeln!(out, "    let d_m{i} = eval_shape(p, {s});").map_err(|e| e.to_string())?;
+        writeln!(out, "    let blend_{i} = combine_blend(d, d_m{i}, {s}.combination_op, {s}.smooth_k);").map_err(|e| e.to_string())?;
+        writeln!(out, "    let t_{i} = blend_{i}.y;").map_err(|e| e.to_string())?;
+        writeln!(out, "    d = blend_{i}.x;").map_err(|e| e.to_string())?;
+        writeln!(out, "    result.color = mix(result.color, get_shape_color({s}, p), t_{i});").map_err(|e| e.to_string())?;
+        writeln!(out, "    result.roughness = mix(result.roughness, {s}.roughness, t_{i});").map_err(|e| e.to_string())?;
+        writeln!(out, "    result.metallic = mix(result.metallic, {s}.metallic, t_{i});").map_err(|e| e.to_string())?;
+        writeln!(out, "    result.fresnel_power = mix(result.fresnel_power, {s}.fresnel_power, t_{i});").map_err(|e| e.to_string())?;
+        writeln!(out, "    if t_{i} > 0.5 {{ result.color_mode = {s}.color_mode; }}").map_err(|e| e.to_string())?;
     }
 
     writeln!(out, "    return result;").map_err(|e| e.to_string())?;
     writeln!(out, "}}").map_err(|e| e.to_string())?;
     Ok(())
 }
+
+/// The complete loop-based fallback shader (source of truth).
+/// This is the canonical shader that works with any scene via shape_count loop.
+pub const FALLBACK_SHADER: &str = include_str!("../assets/shaders/sdf_raymarch.wgsl");
 
 /// Fixed shader preamble: structs, noise, primitives, eval_shape, get_shape_color,
 /// combine_blend, BRDF functions. Everything up to (but not including) sdf_scene().
@@ -116,6 +115,17 @@ pub fn regenerate_if_changed(
     std::fs::write(path, &wgsl).map_err(|e| format!("failed to write shader: {e}"))?;
     *last_hash = hash;
     Ok(true)
+}
+
+/// Ensure the runtime shader file exists with the fallback (loop-based) shader.
+/// Called once at startup. Codegen may later overwrite this file.
+pub fn ensure_runtime_shader() {
+    let dir = std::path::Path::new("assets/shaders");
+    std::fs::create_dir_all(dir).ok();
+    let path = dir.join("sdf_raymarch.wgsl");
+    if let Err(e) = std::fs::write(&path, FALLBACK_SHADER) {
+        eprintln!("Failed to write fallback shader: {e}");
+    }
 }
 
 /// Compute a topology hash for change detection.

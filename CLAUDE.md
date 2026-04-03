@@ -67,10 +67,10 @@ LITSDF_SCREENSHOT=path.png cargo run --bin litsdf  # screenshot
 - `glam` version must match Bevy's internal glam (0.30) to avoid type mismatches
 - `ShaderShape` in Rust (`shader.rs`) and WGSL (`sdf_raymarch.wgsl`) must be byte-identical — add/remove fields in BOTH or rendering breaks silently
 - `SdfShaderParams` settings fields MUST go AFTER the shapes array, not before — inserting before shapes shifts the array offset and Metal silently fails to render (no error, just blank viewport)
-- `assets/shaders/` is a symlink to `crates/litsdf_render/assets/shaders/` — edit only the crate copy, never the symlink target directly
+- `assets/shaders/` is a RUNTIME directory (gitignored, generated). The SOURCE shader lives at `crates/litsdf_render/assets/shaders/sdf_raymarch.wgsl`. Codegen writes to `assets/shaders/sdf_raymarch.wgsl`. Always edit the CRATE copy.
 - Animation is done via node graphs (egui-snarl), NOT via model fields — `anim_*` fields were removed; old YAML files with `anim_*` will fail to load with a migration message
 - `litsdf_core` must NOT depend on egui-snarl — node graphs live in `litsdf_editor` as `HashMap<ShapeId/BoneId, Snarl<SdfNode>>`
 - `compute_bone_world_transforms` takes `&HashMap<BoneId, ShapeTransform>` for overrides, not `time: f32` — pass empty HashMap when no overrides needed
 - WGSL `vec3(scalar)` shorthand is NOT supported by Bevy's naga — always use `vec3<f32>(x, x, x)` with explicit components
-- Shader codegen writes to `assets/shaders/sdf_raymarch.wgsl` on topology change — Bevy hot-reloads automatically. The preamble/postamble sources are in `crates/litsdf_render/assets/shaders/`
+- Shader codegen writes to `assets/shaders/sdf_raymarch.wgsl` (runtime copy, gitignored) on topology change — Bevy hot-reloads automatically. Source shader + preamble/postamble live in `crates/litsdf_render/assets/shaders/` (committed). On startup, `ensure_runtime_shader()` copies the fallback loop-based shader to the runtime location.
 - Lighting uses Cook-Torrance PBR (GGX + Fresnel-Schlick + Smith geometry), NOT Blinn-Phong
