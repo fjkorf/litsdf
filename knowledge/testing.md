@@ -1,10 +1,10 @@
 # Testing Strategy
 
-## Unit Tests (66 tests, cargo test --workspace)
+## Unit Tests (68 tests, cargo test --workspace)
 
 Tests are distributed across crates:
 - `litsdf_core`: 31 tests (models, scene, persistence)
-- `litsdf_editor`: 15 tests (UI click-through, undo, node graph evaluation, project persistence, presets)
+- `litsdf_editor`: 17 tests (UI, undo, node graph, project persistence, presets, demo scenes)
 - `litsdf_render`: 4 tests (shader struct size, codegen default scene, codegen empty scene, topology hash)
 - `litsdf_cli`: 16 integration tests (CLI workflow end-to-end)
 

@@ -21,17 +21,12 @@ LITSDF_SCREENSHOT="$SCREENSHOTS/test_default_scene.png" \
   cargo run --bin litsdf --quiet 2>&1 | tail -1
 echo "  -> $SCREENSHOTS/test_default_scene.png"
 
-# 2. Load the real nested scene (my_shape_2.yaml)
-SCENE_FILE="$HOME/Library/Application Support/litsdf/scenes/my_shape_2.yaml"
-if [ -f "$SCENE_FILE" ]; then
-  echo "[2/4] Nested scene (my_shape_2.yaml)..."
-  LITSDF_SCENE="$SCENE_FILE" \
-  LITSDF_SCREENSHOT="$SCREENSHOTS/test_nested_scene.png" \
-    cargo run --bin litsdf --quiet 2>&1 | tail -1
-  echo "  -> $SCREENSHOTS/test_nested_scene.png"
-else
-  echo "[2/4] SKIP — $SCENE_FILE not found"
-fi
+# 2. Mushroom Garden demo scene
+echo "[2/4] Mushroom Garden demo..."
+LITSDF_DEMO=mushroom \
+LITSDF_SCREENSHOT="$SCREENSHOTS/test_mushroom_demo.png" \
+  cargo run --bin litsdf --quiet 2>&1 | tail -1
+echo "  -> $SCREENSHOTS/test_mushroom_demo.png"
 
 # 3. Programmatic test scene — write a YAML with known structure, screenshot it
 echo "[3/4] Programmatic multi-bone scene..."

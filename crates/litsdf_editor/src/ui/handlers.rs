@@ -2,10 +2,7 @@ use litsdf_core::models::{BoneId, SdfPrimitive, SdfShape};
 use litsdf_render::scene_sync::SdfSceneState;
 
 use super::EditorUi;
-
-const PRIM_NAMES: [&str; 9] = [
-    "Sphere", "Box", "RoundBox", "Cylinder", "CappedCone", "Torus", "Capsule", "Plane", "Ellipsoid",
-];
+use super::helpers::PRIM_NAMES;
 
 pub fn handle_confirm_add(ui: &mut EditorUi, scene: &mut SdfSceneState) {
     if ui.md.state.on_confirm_add_count > ui.prev_on_confirm_add {

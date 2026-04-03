@@ -428,6 +428,21 @@ fn combine_blend(d_scene: f32, d_shape: f32, op: u32, k: f32) -> vec2<f32> {
 // --- Generated: distance-only scene evaluation ---
 fn sdf_scene(p: vec3<f32>) -> f32 {
     var d = eval_shape(p, params.shapes[0]);
+    {
+        let s = params.shapes[1u];
+        let d_s = eval_shape(p, s);
+        d = combine_blend(d, d_s, s.combination_op, s.smooth_k).x;
+    }
+    {
+        let s = params.shapes[2u];
+        let d_s = eval_shape(p, s);
+        d = combine_blend(d, d_s, s.combination_op, s.smooth_k).x;
+    }
+    {
+        let s = params.shapes[3u];
+        let d_s = eval_shape(p, s);
+        d = combine_blend(d, d_s, s.combination_op, s.smooth_k).x;
+    }
     return d;
 }
 
@@ -442,6 +457,42 @@ fn sdf_scene_material(p: vec3<f32>) -> MatResult {
         s0.color_mode,
     );
     var d = eval_shape(p, s0);
+    {
+        let s = params.shapes[1u];
+        let d_s = eval_shape(p, s);
+        let blend = combine_blend(d, d_s, s.combination_op, s.smooth_k);
+        let t = blend.y;
+        d = blend.x;
+        result.color = mix(result.color, get_shape_color(s, p), t);
+        result.roughness = mix(result.roughness, s.roughness, t);
+        result.metallic = mix(result.metallic, s.metallic, t);
+        result.fresnel_power = mix(result.fresnel_power, s.fresnel_power, t);
+        if t > 0.5 { result.color_mode = s.color_mode; }
+    }
+    {
+        let s = params.shapes[2u];
+        let d_s = eval_shape(p, s);
+        let blend = combine_blend(d, d_s, s.combination_op, s.smooth_k);
+        let t = blend.y;
+        d = blend.x;
+        result.color = mix(result.color, get_shape_color(s, p), t);
+        result.roughness = mix(result.roughness, s.roughness, t);
+        result.metallic = mix(result.metallic, s.metallic, t);
+        result.fresnel_power = mix(result.fresnel_power, s.fresnel_power, t);
+        if t > 0.5 { result.color_mode = s.color_mode; }
+    }
+    {
+        let s = params.shapes[3u];
+        let d_s = eval_shape(p, s);
+        let blend = combine_blend(d, d_s, s.combination_op, s.smooth_k);
+        let t = blend.y;
+        d = blend.x;
+        result.color = mix(result.color, get_shape_color(s, p), t);
+        result.roughness = mix(result.roughness, s.roughness, t);
+        result.metallic = mix(result.metallic, s.metallic, t);
+        result.fresnel_power = mix(result.fresnel_power, s.fresnel_power, t);
+        if t > 0.5 { result.color_mode = s.color_mode; }
+    }
     return result;
 }
 // --- Normals ---

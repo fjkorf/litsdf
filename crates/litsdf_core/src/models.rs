@@ -414,81 +414,12 @@ impl SdfScene {
 
     pub fn default_scene() -> Self {
         let mut root = SdfBone::root();
-
-        // Floating island bone
-        let mut island_bone = SdfBone::new("Island");
-
-        // Island base — rounded box with noise
-        let mut island_base = SdfShape::new("Rock", SdfPrimitive::RoundBox {
-            half_extents: [1.2, 0.5, 1.0], rounding: 0.2,
-        });
-        island_base.material.color = [0.5, 0.4, 0.3];
-        island_base.material.roughness = 0.85;
-        island_base.material.noise_amplitude = 0.05;
-        island_base.material.noise_frequency = 3.0;
-        island_base.material.noise_octaves = 2;
-        island_base.material.color_mode = 2;
-        island_bone.shapes.push(island_base);
-
-        // Grassy mound on top — smooth union with island
-        let mut mound = SdfShape::new("Grass", SdfPrimitive::Ellipsoid {
-            radii: [1.1, 0.35, 0.9],
-        });
-        mound.transform.translation = [0.0, 0.35, 0.0];
-        mound.material.color = [0.25, 0.55, 0.2];
-        mound.material.roughness = 0.7;
-        mound.material.noise_amplitude = 0.02;
-        mound.material.noise_frequency = 5.0;
-        mound.material.noise_octaves = 2;
-        mound.combination = CombinationOp::SmoothUnion { k: 0.35 };
-        island_bone.shapes.push(mound);
-
-        // Tree bone (child of island)
-        let mut tree_bone = SdfBone::new("Tree");
-        tree_bone.transform.translation = [0.3, 0.7, -0.1];
-
-        // Trunk
-        let mut trunk = SdfShape::new("Trunk", SdfPrimitive::Capsule {
-            radius: 0.08, half_height: 0.5,
-        });
-        trunk.material.color = [0.4, 0.28, 0.15];
-        trunk.material.roughness = 0.9;
-        trunk.material.color_mode = 2;
-        trunk.material.noise_frequency = 8.0;
-        tree_bone.shapes.push(trunk);
-
-        // Canopy — sphere with gentle breathing animation
-        let mut canopy = SdfShape::new("Canopy", SdfPrimitive::Sphere { radius: 0.5 });
-        canopy.transform.translation = [0.0, 0.7, 0.0];
-        canopy.material.color = [0.2, 0.5, 0.15];
-        canopy.material.roughness = 0.6;
-        canopy.material.noise_amplitude = 0.04;
-        canopy.material.noise_frequency = 4.0;
-        canopy.material.noise_octaves = 2;
-        canopy.combination = CombinationOp::SmoothUnion { k: 0.15 };
-        tree_bone.shapes.push(canopy);
-
-        island_bone.children.push(tree_bone);
-
-        // Orbiter bone (child of island)
-        let mut orbiter_bone = SdfBone::new("Orbiter");
-        orbiter_bone.transform.translation = [1.8, 0.8, 0.0];
-
-        // Orbiting torus — metallic, animated
-        let mut ring = SdfShape::new("Ring", SdfPrimitive::Torus {
-            major_radius: 0.3, minor_radius: 0.07,
-        });
-        ring.material.color = [0.3, 0.5, 0.9];
-        ring.material.roughness = 0.15;
-        ring.material.metallic = 0.8;
-        ring.material.fresnel_power = 2.5;
-        orbiter_bone.shapes.push(ring);
-
-        island_bone.children.push(orbiter_bone);
-        root.children.push(island_bone);
-
+        let mut sphere = SdfShape::default_sphere();
+        sphere.material.color = [0.7, 0.7, 0.7];
+        sphere.material.roughness = 0.5;
+        root.shapes.push(sphere);
         Self {
-            name: "Floating Islands".into(),
+            name: "Untitled".into(),
             root_bone: root,
             combination: CombinationOp::Union,
             light_dir: default_light_dir(),
@@ -1058,11 +989,11 @@ mod tests {
     fn scene_info() {
         let scene = SdfScene::default_scene();
         let info = scene.info();
-        assert_eq!(info.name, "Floating Islands");
-        assert!(info.bone_count > 0);
-        assert!(info.shape_count > 0);
+        assert_eq!(info.name, "Untitled");
+        assert_eq!(info.bone_count, 0); // root bone not counted
+        assert_eq!(info.shape_count, 1); // one default sphere
         let s = format!("{}", info);
-        assert!(s.contains("Floating Islands"));
+        assert!(s.contains("Untitled"));
     }
 
     #[test]

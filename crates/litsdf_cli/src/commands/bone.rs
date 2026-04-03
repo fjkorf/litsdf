@@ -103,17 +103,6 @@ fn parse_vec3(s: &str) -> Result<[f32; 3], String> {
     ])
 }
 
-fn parse_vec2(s: &str) -> Result<[f32; 2], String> {
-    let parts: Vec<&str> = s.split(',').collect();
-    if parts.len() != 2 {
-        return Err("expected 2 comma-separated values (e.g. 0.3,0.5)".into());
-    }
-    Ok([
-        parts[0].trim().parse().map_err(|e| format!("{e}"))?,
-        parts[1].trim().parse().map_err(|e| format!("{e}"))?,
-    ])
-}
-
 fn find_bone_id(root: &SdfBone, name: &str) -> Result<BoneId, String> {
     root.find_bone_by_name(name)
         .map(|b| b.id)

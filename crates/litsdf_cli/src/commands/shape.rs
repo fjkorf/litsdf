@@ -147,15 +147,6 @@ pub enum ShapeCmd {
     },
 }
 
-fn parse_vec2(s: &str) -> Result<[f32; 2], String> {
-    let parts: Vec<&str> = s.split(',').collect();
-    if parts.len() != 2 { return Err("expected 2 comma-separated values".into()); }
-    Ok([
-        parts[0].trim().parse().map_err(|e| format!("{e}"))?,
-        parts[1].trim().parse().map_err(|e| format!("{e}"))?,
-    ])
-}
-
 fn parse_vec3(s: &str) -> Result<[f32; 3], String> {
     let parts: Vec<&str> = s.split(',').collect();
     if parts.len() != 3 { return Err("expected 3 comma-separated values".into()); }

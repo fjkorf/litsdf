@@ -4,12 +4,8 @@ fn rgba_to_f32(c: [u8; 4]) -> [f32; 3] {
     [c[0] as f32 / 255.0, c[1] as f32 / 255.0, c[2] as f32 / 255.0]
 }
 
-use super::helpers::{index_to_combo, prim_params, prim_to_index, set_prim_params};
+use super::helpers::{PRIM_NAMES, index_to_combo, prim_params, prim_to_index, set_prim_params};
 use super::EditorUi;
-
-const PRIM_NAMES: [&str; 9] = [
-    "Sphere", "Box", "RoundBox", "Cylinder", "CappedCone", "Torus", "Capsule", "Plane", "Ellipsoid",
-];
 
 pub fn sync_shape_properties(ui: &mut EditorUi, scene: &mut SdfSceneState) {
     let Some(sel_id) = scene.selected_shape else { return };

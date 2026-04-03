@@ -1,5 +1,5 @@
 use egui::{Color32, Ui};
-use egui_snarl::{InPin, InPinId, OutPin, OutPinId, Snarl};
+use egui_snarl::{InPin, OutPin, Snarl};
 use egui_snarl::ui::{PinInfo, SnarlViewer};
 
 use super::types::{PinType, SdfNode};
@@ -10,6 +10,7 @@ const OUTPUT_COLOR: Color32 = Color32::from_rgb(0x40, 0xe0, 0x60);
 
 pub struct SdfNodeViewer;
 
+#[allow(refining_impl_trait)]
 impl SnarlViewer<SdfNode> for SdfNodeViewer {
     fn title(&mut self, node: &SdfNode) -> String {
         node.name().to_string()

@@ -32,6 +32,7 @@
 - **Render sequence** — `LITSDF_RENDER_SEQUENCE=dir,frames,fps` for video frame export
 - **PBR Lighting** — Cook-Torrance BRDF (GGX + Fresnel-Schlick + Smith geometry)
 - **Shader codegen** — unrolled shape evaluation, preamble/body/postamble split, topology-driven recompilation
+- **6 demo scenes** — Primitive Gallery, Boolean Sampler, Modifier Parade, Mushroom Garden, Robot Friend, Abstract Sculpture (File > Demo Scenes menu)
 
 ## Removed (replaced by node editor)
 

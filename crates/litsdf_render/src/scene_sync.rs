@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use bevy::prelude::*;
 
-use litsdf_core::models::{BoneId, ShapeId, ShapeTransform, SdfScene};
+use litsdf_core::models::{BoneId, ShapeId, SdfScene};
 use litsdf_core::scene;
 use crate::shader::{SdfMaterial, SdfShaderParams, ShaderShape, MAX_SHAPES};
 

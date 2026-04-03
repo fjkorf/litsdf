@@ -88,7 +88,7 @@ pub fn draw_compass(
             ];
             sorted.sort_by(|a, b| depths[a.0].partial_cmp(&depths[b.0]).unwrap());
 
-            for (i, (dir, color, label)) in sorted {
+            for (_, (dir, color, label)) in sorted {
                 let tip = center + *dir * len;
                 painter.arrow(center, *dir * len, egui::Stroke::new(2.0, *color));
                 painter.text(

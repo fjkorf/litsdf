@@ -232,8 +232,8 @@ mod tests {
         let world_transforms = compute_bone_world_transforms(&scene.root_bone, Mat4::IDENTITY, &HashMap::new());
         let mut flat = Vec::new();
         flatten_bone_tree(&scene.root_bone, &world_transforms, &mut flat);
-        assert!(flat.len() >= 5, "default scene has at least 5 shapes");
-        assert_eq!(flat[0].primitive_type, 2); // RoundBox (rock)
+        assert_eq!(flat.len(), 1, "default scene has one sphere");
+        assert_eq!(flat[0].primitive_type, 0); // Sphere
     }
 
     #[test]

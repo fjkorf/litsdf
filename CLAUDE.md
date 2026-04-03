@@ -43,6 +43,7 @@ The generated `knowledge/api/API.md` covers all four crates with full type defin
 - `knowledge/node-architecture.md` — Node editor architecture design document
 - `knowledge/shader-codegen.md` — Per-pixel shader code generation research
 - `knowledge/pbr-lighting.md` — PBR (Cook-Torrance) lighting upgrade research
+- `knowledge/demo-scenes.md` — 6 demo scenes, feature coverage, loading instructions
 
 ## Running
 
@@ -50,7 +51,7 @@ The generated `knowledge/api/API.md` covers all four crates with full type defin
 cargo run --bin litsdf                       # editor
 cargo run --bin litsdf-viewer -- scene.yaml  # viewer
 cargo run -p litsdf-cli -- scene info s.yaml # CLI
-cargo test --workspace                       # 66 tests
+cargo test --workspace                       # 68 tests
 LITSDF_SCREENSHOT=path.png cargo run --bin litsdf  # screenshot
 ```
 

@@ -113,7 +113,7 @@ pub struct SceneInfo {
 ```
 
 
-#### `SdfShape` (line 503)
+#### `SdfShape` (line 434)
 
 ```rust
 pub struct SdfShape {
@@ -134,7 +134,7 @@ pub struct SdfShape {
 ```
 
 
-#### `ShapeTransform` (line 537)
+#### `ShapeTransform` (line 468)
 
 ```rust
 pub struct ShapeTransform {
@@ -148,7 +148,7 @@ pub struct ShapeTransform {
 ```
 
 
-#### `ShapeMaterial` (line 561)
+#### `ShapeMaterial` (line 492)
 
 ```rust
 pub struct ShapeMaterial {
@@ -184,7 +184,7 @@ pub struct ShapeMaterial {
 
 ### Enums
 
-#### `SdfPrimitive` (line 520)
+#### `SdfPrimitive` (line 451)
 
 ```rust
 pub enum SdfPrimitive {
@@ -205,7 +205,7 @@ pub enum SdfPrimitive {
 ```
 
 
-#### `CombinationOp` (line 615)
+#### `CombinationOp` (line 546)
 
 ```rust
 pub enum CombinationOp {
@@ -221,7 +221,7 @@ pub enum CombinationOp {
 ```
 
 
-#### `ShapeModifier` (line 635)
+#### `ShapeModifier` (line 566)
 
 ```rust
 pub enum ShapeModifier {
@@ -491,70 +491,70 @@ ASCII tree representation of the scene hierarchy.
 ```
 
 
-#### `is_default` (line 547)
+#### `is_default` (line 478)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `is_default` (line 591)
+#### `is_default` (line 522)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `is_default` (line 631)
+#### `is_default` (line 562)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `duplicate` (line 645)
+#### `duplicate` (line 576)
 
 ```rust
     pub fn duplicate(&self) -> Self
 ```
 
 
-#### `reset_transform` (line 652)
+#### `reset_transform` (line 583)
 
 ```rust
     pub fn reset_transform(&mut self)
 ```
 
 
-#### `clear_modifiers` (line 656)
+#### `clear_modifiers` (line 587)
 
 ```rust
     pub fn clear_modifiers(&mut self)
 ```
 
 
-#### `default_sphere` (line 660)
+#### `default_sphere` (line 591)
 
 ```rust
     pub fn default_sphere() -> Self
 ```
 
 
-#### `new` (line 673)
+#### `new` (line 604)
 
 ```rust
     pub fn new(name: impl Into<String>, primitive: SdfPrimitive) -> Self
 ```
 
 
-#### `label` (line 688)
+#### `label` (line 619)
 
 ```rust
     pub fn label(&self) -> &'static str
 ```
 
 
-#### `default_for` (line 706)
+#### `default_for` (line 637)
 
 ```rust
     pub fn default_for(name: &str) -> Self
@@ -1109,7 +1109,7 @@ use crate::scene_sync::SdfSceneState;
 
 ### Structs
 
-#### `ClickTracker` (line 186)
+#### `ClickTracker` (line 117)
 
 ```rust
 pub struct ClickTracker {
@@ -1118,7 +1118,7 @@ pub struct ClickTracker {
 ```
 
 
-#### `DragState` (line 191)
+#### `DragState` (line 122)
 
 ```rust
 pub struct DragState {
@@ -1134,7 +1134,7 @@ pub struct DragState {
 
 ### Functions
 
-#### `sdf_scene` (line 135)
+#### `sdf_scene` (line 66)
 
 ```rust
 fn sdf_scene(p: Vec3, shapes: &[WorldShape]) -> f32
@@ -1142,7 +1142,7 @@ fn sdf_scene(p: Vec3, shapes: &[WorldShape]) -> f32
 
 Combined scene SDF for ray marching (uses union of all shapes).
 
-#### `pick_shape` (line 144)
+#### `pick_shape` (line 75)
 
 ```rust
 pub fn pick_shape(ray: Ray3d, scene: &SdfScene) -> Option<(ShapeId, BoneId)>
@@ -1150,14 +1150,14 @@ pub fn pick_shape(ray: Ray3d, scene: &SdfScene) -> Option<(ShapeId, BoneId)>
 
 Ray march to find a hit point, then determine which shape is closest.
 
-#### `pick_shape` (line 144)
+#### `pick_shape` (line 75)
 
 ```rust
 pub fn pick_shape(ray: Ray3d, scene: &SdfScene) -> Option<(ShapeId, BoneId)>
 ```
 
 
-#### `pick_system` (line 200)
+#### `pick_system` (line 131)
 
 ```rust
 pub fn pick_system(
@@ -1171,7 +1171,7 @@ pub fn pick_system(
 ```
 
 
-#### `draw_handles` (line 247)
+#### `draw_handles` (line 178)
 
 ```rust
 pub fn draw_handles(
@@ -1183,7 +1183,7 @@ pub fn draw_handles(
 
 Draw translation handles at selected shape/bone position.
 
-#### `draw_handles` (line 247)
+#### `draw_handles` (line 178)
 
 ```rust
 pub fn draw_handles(
@@ -1194,7 +1194,7 @@ pub fn draw_handles(
 ```
 
 
-#### `drag_system` (line 269)
+#### `drag_system` (line 200)
 
 ```rust
 pub fn drag_system(
@@ -1209,7 +1209,7 @@ pub fn drag_system(
 
 Handle drag interaction.
 
-#### `drag_system` (line 269)
+#### `drag_system` (line 200)
 
 ```rust
 pub fn drag_system(
@@ -1223,7 +1223,7 @@ pub fn drag_system(
 ```
 
 
-#### `get_selected_world_pos` (line 339)
+#### `get_selected_world_pos` (line 270)
 
 ```rust
 pub fn get_selected_world_pos(scene: &SdfSceneState) -> Option<Vec3>
@@ -1442,7 +1442,7 @@ pub enum BoneCmd {
 
 ### Functions
 
-#### `run` (line 123)
+#### `run` (line 112)
 
 ```rust
 pub fn run(cmd: BoneCmd) -> Result<(), String>
@@ -1604,7 +1604,7 @@ pub enum ShapeCmd {
 
 ### Functions
 
-#### `run` (line 211)
+#### `run` (line 202)
 
 ```rust
 pub fn run(cmd: ShapeCmd) -> Result<(), String>
@@ -1686,7 +1686,7 @@ pub fn run(cmd: ModifierCmd) -> Result<(), String>
 
 ### Structs
 
-#### `SdfEditorPlugin` (line 9)
+#### `SdfEditorPlugin` (line 10)
 
 ```rust
 pub struct SdfEditorPlugin;
@@ -1702,7 +1702,6 @@ pub struct SdfEditorPlugin;
 ```rust
 pub struct EditorUi {
     pub md: app::LituiApp,
-    pub(crate) prev_on_add_shape: u32,
     pub(crate) prev_on_delete_shape: u32,
     pub(crate) prev_on_edit_yaml: u32,
     pub(crate) prev_on_apply_yaml: u32,
@@ -1723,13 +1722,12 @@ pub struct EditorUi {
     pub(crate) node_style: SnarlStyle,
     // Graph undo (separate from scene undo)
     pub(crate) graph_undo_stack: Vec<(ShapeId, Snarl<SdfNode>)>,
-    pub(crate) graph_undo_bone_stack: Vec<(BoneId, Snarl<SdfNode>)>,
     pub(crate) rename_state: Option<(tree::RenameTarget, String)>,
 }
 ```
 
 
-#### `TreePanelActions` (line 92)
+#### `TreePanelActions` (line 88)
 
 ```rust
 struct TreePanelActions {
@@ -1747,7 +1745,7 @@ Actions collected from the left panel to apply after rendering.
 
 ### Functions
 
-#### `editor_ui` (line 106)
+#### `editor_ui` (line 102)
 
 ```rust
 pub fn editor_ui(
@@ -1804,14 +1802,14 @@ pub fn populate_file_browser(ui: &mut EditorUi)
 
 ### Functions
 
-#### `sync_shape_properties` (line 14)
+#### `sync_shape_properties` (line 10)
 
 ```rust
 pub fn sync_shape_properties(ui: &mut EditorUi, scene: &mut SdfSceneState)
 ```
 
 
-#### `sync_bone_properties` (line 146)
+#### `sync_bone_properties` (line 142)
 
 ```rust
 pub fn sync_bone_properties(ui: &mut EditorUi, scene: &mut SdfSceneState)
@@ -1822,63 +1820,63 @@ pub fn sync_bone_properties(ui: &mut EditorUi, scene: &mut SdfSceneState)
 
 ### Functions
 
-#### `handle_confirm_add` (line 10)
+#### `handle_confirm_add` (line 7)
 
 ```rust
 pub fn handle_confirm_add(ui: &mut EditorUi, scene: &mut SdfSceneState)
 ```
 
 
-#### `handle_delete_shape` (line 27)
+#### `handle_delete_shape` (line 24)
 
 ```rust
 pub fn handle_delete_shape(ui: &mut EditorUi, scene: &mut SdfSceneState)
 ```
 
 
-#### `handle_edit_yaml` (line 38)
+#### `handle_edit_yaml` (line 35)
 
 ```rust
 pub fn handle_edit_yaml(ui: &mut EditorUi, scene: &SdfSceneState)
 ```
 
 
-#### `handle_apply_yaml` (line 50)
+#### `handle_apply_yaml` (line 47)
 
 ```rust
 pub fn handle_apply_yaml(ui: &mut EditorUi, scene: &mut SdfSceneState)
 ```
 
 
-#### `handle_shape_selection` (line 71)
+#### `handle_shape_selection` (line 68)
 
 ```rust
 pub fn handle_shape_selection(ui: &mut EditorUi, scene: &mut SdfSceneState) -> bool
 ```
 
 
-#### `handle_reset_transform` (line 89)
+#### `handle_reset_transform` (line 86)
 
 ```rust
 pub fn handle_reset_transform(ui: &mut EditorUi, scene: &mut SdfSceneState)
 ```
 
 
-#### `handle_clear_modifiers` (line 103)
+#### `handle_clear_modifiers` (line 100)
 
 ```rust
 pub fn handle_clear_modifiers(ui: &mut EditorUi, scene: &mut SdfSceneState)
 ```
 
 
-#### `handle_save_load` (line 116)
+#### `handle_save_load` (line 113)
 
 ```rust
 pub fn handle_save_load(_ui: &mut EditorUi)
 ```
 
 
-#### `handle_file_browser` (line 120)
+#### `handle_file_browser` (line 117)
 
 ```rust
 pub fn handle_file_browser(ui: &mut EditorUi, scene: &mut SdfSceneState)
@@ -1948,7 +1946,7 @@ pub const PRIM_NAMES: &[&str] = &[
 
 ### Structs
 
-#### `TreeResult` (line 44)
+#### `TreeResult` (line 43)
 
 ```rust
 pub struct TreeResult {
@@ -2043,7 +2041,6 @@ pub enum ContextAction {
     ReparentShape { shape: ShapeId, new_bone: BoneId },
     RenameBone(BoneId, String),
     RenameShape(ShapeId, String),
-    StartRename(RenameTarget),
 }
 ```
 
@@ -2067,14 +2064,13 @@ pub enum ContextAction {
     ReparentShape { shape: ShapeId, new_bone: BoneId },
     RenameBone(BoneId, String),
     RenameShape(ShapeId, String),
-    StartRename(RenameTarget),
 }
 ```
 
 
 ### Functions
 
-#### `collect_bone_list` (line 50)
+#### `collect_bone_list` (line 49)
 
 ```rust
 fn collect_bone_list(bone: &SdfBone, out: &mut Vec<(BoneId, String)>)
@@ -2082,7 +2078,7 @@ fn collect_bone_list(bone: &SdfBone, out: &mut Vec<(BoneId, String)>)
 
 Flat list of (BoneId, name) for reparent submenus.
 
-#### `render_bone_tree` (line 58)
+#### `render_bone_tree` (line 57)
 
 ```rust
 pub fn render_bone_tree(
@@ -2096,7 +2092,7 @@ pub fn render_bone_tree(
 
 Renders the bone tree recursively using egui CollapsingHeader.
 
-#### `render_bone_tree` (line 58)
+#### `render_bone_tree` (line 57)
 
 ```rust
 pub fn render_bone_tree(
@@ -2286,7 +2282,7 @@ Stratification = (outgoing + 1) / (incoming + 1). Low = foundational, high = lea
 
 | Module | Out | In | Strat | Role |
 |--------|-----|-----|-------|------|
-| `core::models` | 0 | 21 | 0.05 | foundation |
+| `core::models` | 0 | 28 | 0.03 | foundation |
 | `render::camera` | 0 | 3 | 0.25 | foundation |
 | `core::scene` | 1 | 4 | 0.40 | foundation |
 | `render::scene_sync` | 3 | 8 | 0.44 | foundation |
@@ -2302,6 +2298,13 @@ Stratification = (outgoing + 1) / (incoming + 1). Low = foundational, high = lea
 | `editor::nodes::viewer` | 0 | 0 | 1.00 | core |
 | `editor::ui::shortcuts` | 0 | 0 | 1.00 | core |
 | `core::sdf` | 1 | 0 | 2.00 | connector |
+| `editor::demos::abstract_sculpture` | 1 | 0 | 2.00 | connector |
+| `editor::demos::boolean_sampler` | 1 | 0 | 2.00 | connector |
+| `editor::demos::mod` | 1 | 0 | 2.00 | connector |
+| `editor::demos::modifier_parade` | 1 | 0 | 2.00 | connector |
+| `editor::demos::mushroom_garden` | 1 | 0 | 2.00 | connector |
+| `editor::demos::primitive_gallery` | 1 | 0 | 2.00 | connector |
+| `editor::demos::robot_friend` | 1 | 0 | 2.00 | connector |
 | `editor::project` | 1 | 0 | 2.00 | connector |
 | `editor::ui::helpers` | 1 | 0 | 2.00 | connector |
 | `editor::ui::tree` | 1 | 0 | 2.00 | connector |

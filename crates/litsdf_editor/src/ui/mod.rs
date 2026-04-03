@@ -33,7 +33,6 @@ pub mod app {
 #[derive(Resource)]
 pub struct EditorUi {
     pub md: app::LituiApp,
-    pub(crate) prev_on_add_shape: u32,
     pub(crate) prev_on_delete_shape: u32,
     pub(crate) prev_on_edit_yaml: u32,
     pub(crate) prev_on_apply_yaml: u32,
@@ -54,7 +53,6 @@ pub struct EditorUi {
     pub(crate) node_style: SnarlStyle,
     // Graph undo (separate from scene undo)
     pub(crate) graph_undo_stack: Vec<(ShapeId, Snarl<SdfNode>)>,
-    pub(crate) graph_undo_bone_stack: Vec<(BoneId, Snarl<SdfNode>)>,
     pub(crate) rename_state: Option<(tree::RenameTarget, String)>,
 }
 
@@ -62,7 +60,6 @@ impl Default for EditorUi {
     fn default() -> Self {
         Self {
             md: app::LituiApp::default(),
-            prev_on_add_shape: 0,
             prev_on_delete_shape: 0,
             prev_on_edit_yaml: 0,
             prev_on_apply_yaml: 0,
@@ -81,7 +78,6 @@ impl Default for EditorUi {
             bone_graphs: HashMap::new(),
             node_style: SnarlStyle::new(),
             graph_undo_stack: Vec::new(),
-            graph_undo_bone_stack: Vec::new(),
             rename_state: None,
         }
     }
@@ -156,6 +152,7 @@ pub fn editor_ui(
 
     // ── Menu bar ──
     let mut ui_show_node_editor = ui.show_node_editor;
+    let mut selected_demo: Option<crate::demos::DemoScene> = None;
     egui::TopBottomPanel::top("menu_bar").show(&ctx, |bar_ui| {
         egui::MenuBar::new().ui(bar_ui, |bar_ui| {
             bar_ui.menu_button("File", |ui| {
@@ -163,6 +160,15 @@ pub fn editor_ui(
                     shortcut_action = ShortcutAction::NewScene;
                     ui.close();
                 }
+                ui.menu_button("Demo Scenes", |ui| {
+                    for demo in crate::demos::DemoScene::all() {
+                        if ui.button(demo.label()).clicked() {
+                            selected_demo = Some(*demo);
+                            ui.close();
+                        }
+                    }
+                });
+                ui.separator();
                 if ui.add(egui::Button::new("Open...").shortcut_text(ctx.format_shortcut(&shortcuts::OPEN))).clicked() {
                     shortcut_action = ShortcutAction::Open;
                     ui.close();
@@ -352,22 +358,6 @@ pub fn editor_ui(
             });
     }
 
-    // Initialize default scene graphs (one-time, when default scene has no graphs)
-    if scene.scene.name == "Floating Islands" && ui.node_graphs.is_empty() && ui.bone_graphs.is_empty() {
-        // Island bone: slow spin
-        if let Some(island) = scene.scene.root_bone.find_bone_by_name("Island") {
-            ui.bone_graphs.insert(island.id, crate::nodes::bone_spin_preset(3.0));
-        }
-        // Canopy shape: gentle breathing
-        if let Some((canopy, _)) = scene.scene.root_bone.find_shape_by_name("Canopy") {
-            ui.node_graphs.insert(canopy.id, crate::nodes::pulse_preset(0.03, 0.4));
-        }
-        // Ring shape: bob + spin
-        if let Some((ring, _)) = scene.scene.root_bone.find_shape_by_name("Ring") {
-            ui.node_graphs.insert(ring.id, crate::nodes::bob_preset(0.2, 0.5));
-        }
-    }
-
     // Scene name (bidirectional — always sync)
     if ui.md.state.scene_name != scene.scene.name && !ui.md.state.scene_name.is_empty() {
         scene.scene.name = ui.md.state.scene_name.clone();
@@ -500,6 +490,8 @@ pub fn editor_ui(
         }
         ShortcutAction::NewScene => {
             scene.scene = litsdf_core::models::SdfScene::new("Untitled");
+            ui.node_graphs.clear();
+            ui.bone_graphs.clear();
             scene.selected_shape = None;
             scene.selected_bone = None;
             scene.dirty = true;
@@ -619,6 +611,18 @@ pub fn editor_ui(
             bone_changed = true;
         }
         ShortcutAction::None => {}
+    }
+
+    // Load demo scene if selected from menu
+    if let Some(demo) = selected_demo {
+        let result = crate::demos::load_demo(demo);
+        scene.scene = result.scene;
+        ui.node_graphs = result.shape_graphs;
+        ui.bone_graphs = result.bone_graphs;
+        scene.selected_shape = None;
+        scene.selected_bone = None;
+        scene.dirty = true;
+        bone_changed = true;
     }
 
     // ── Apply tree panel actions ──
@@ -791,9 +795,6 @@ pub fn editor_ui(
                     shape.name = new_name;
                 }
             }
-        }
-        tree::ContextAction::StartRename(_) => {
-            // Handled by tree rendering — rename_state set directly
         }
     }
 

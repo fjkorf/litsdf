@@ -13,75 +13,6 @@ const MAX_DIST: f32 = 100.0;
 const EPSILON: f32 = 0.005;
 const CLICK_THRESHOLD: f32 = 3.0; // pixels — less than this counts as click, not drag
 
-// ── SDF primitives in Rust (ported from sdf_raymarch.wgsl) ──────
-
-fn sd_sphere(p: Vec3, r: f32) -> f32 {
-    p.length() - r
-}
-
-fn sd_box(p: Vec3, b: Vec3) -> f32 {
-    let q = p.abs() - b;
-    q.max(Vec3::ZERO).length() + q.x.max(q.y.max(q.z)).min(0.0)
-}
-
-fn sd_round_box(p: Vec3, b: Vec3, r: f32) -> f32 {
-    let q = p.abs() - b + Vec3::splat(r);
-    q.max(Vec3::ZERO).length() + q.x.max(q.y.max(q.z)).min(0.0) - r
-}
-
-fn sd_cylinder(p: Vec3, h: f32, r: f32) -> f32 {
-    let d = Vec2::new(Vec2::new(p.x, p.z).length() - r, p.y.abs() - h);
-    d.x.max(d.y).min(0.0) + d.max(Vec2::ZERO).length()
-}
-
-fn sd_capped_cone(p: Vec3, h: f32, r1: f32, r2: f32) -> f32 {
-    let q = Vec2::new(Vec2::new(p.x, p.z).length(), p.y);
-    let k1 = Vec2::new(r2, h);
-    let k2 = Vec2::new(r2 - r1, 2.0 * h);
-    let ca = Vec2::new(
-        q.x - q.x.min(if q.y < 0.0 { r1 } else { r2 }),
-        q.y.abs() - h,
-    );
-    let cb = q - k1 + k2 * ((k1 - q).dot(k2) / k2.dot(k2)).clamp(0.0, 1.0);
-    let s = if cb.x < 0.0 && ca.y < 0.0 { -1.0 } else { 1.0 };
-    s * ca.dot(ca).min(cb.dot(cb)).sqrt()
-}
-
-fn sd_torus(p: Vec3, major: f32, minor: f32) -> f32 {
-    let q = Vec2::new(Vec2::new(p.x, p.z).length() - major, p.y);
-    q.length() - minor
-}
-
-fn sd_capsule(p: Vec3, r: f32, h: f32) -> f32 {
-    let mut q = p;
-    q.y -= q.y.clamp(-h, h);
-    q.length() - r
-}
-
-fn sd_plane(p: Vec3, n: Vec3, d: f32) -> f32 {
-    p.dot(n.normalize()) + d
-}
-
-fn sd_ellipsoid(p: Vec3, r: Vec3) -> f32 {
-    let k0 = (p / r).length();
-    let k1 = (p / (r * r)).length();
-    if k1 == 0.0 { return 0.0; }
-    k0 * (k0 - 1.0) / k1
-}
-
-// ── Rotation (matching shader) ──────────────────────────────────
-
-fn rotate_point(p: Vec3, euler: Vec3) -> Vec3 {
-    let (cx, sx) = (euler.x.cos(), euler.x.sin());
-    let (cy, sy) = (euler.y.cos(), euler.y.sin());
-    let (cz, sz) = (euler.z.cos(), euler.z.sin());
-    let mut q = p;
-    q = Vec3::new(q.x * cz - q.y * sz, q.x * sz + q.y * cz, q.z);
-    q = Vec3::new(q.x, q.y * cx - q.z * sx, q.y * sx + q.z * cx);
-    q = Vec3::new(q.x * cy + q.z * sy, q.y, -q.x * sy + q.z * cy);
-    q
-}
-
 // ── Evaluate single shape at world point ────────────────────────
 
 struct WorldShape {
@@ -94,7 +25,7 @@ struct WorldShape {
 }
 
 fn eval_world_shape(p: Vec3, s: &WorldShape) -> f32 {
-    let q = rotate_point((p - s.translation) / s.scale, -s.rotation);
+    let q = litsdf_core::sdf::rotate_point((p - s.translation) / s.scale, -s.rotation);
     let d = litsdf_core::sdf::eval_primitive(q, &s.primitive);
     d * s.scale
 }
@@ -258,7 +189,7 @@ pub fn draw_handles(
     ];
 
     for (axis, color) in &axes {
-        let width = if drag.active && drag.axis == *axis { 3.0 } else { 1.5 };
+        let _width = if drag.active && drag.axis == *axis { 3.0 } else { 1.5 };
         let tip = pos + *axis * HANDLE_LENGTH;
         gizmos.line(pos, tip, *color);
         gizmos.sphere(Isometry3d::from_translation(tip), HANDLE_PICK_RADIUS, *color);

@@ -19,6 +19,31 @@ fn main() {
     .add_plugins(SdfRenderPlugin)
     .add_plugins(SdfEditorPlugin);
 
+    // LITSDF_DEMO=name — load a demo scene at startup
+    if let Ok(demo_name) = std::env::var("LITSDF_DEMO") {
+        let demo = match demo_name.to_lowercase().as_str() {
+            "gallery" | "primitive" => litsdf_editor::demos::DemoScene::PrimitiveGallery,
+            "boolean" => litsdf_editor::demos::DemoScene::BooleanSampler,
+            "modifier" => litsdf_editor::demos::DemoScene::ModifierParade,
+            "mushroom" => litsdf_editor::demos::DemoScene::MushroomGarden,
+            "robot" => litsdf_editor::demos::DemoScene::RobotFriend,
+            "sculpture" | "abstract" => litsdf_editor::demos::DemoScene::AbstractSculpture,
+            _ => {
+                eprintln!("Unknown demo: {demo_name}. Options: gallery, boolean, modifier, mushroom, robot, sculpture");
+                litsdf_editor::demos::DemoScene::PrimitiveGallery
+            }
+        };
+        let result = litsdf_editor::demos::load_demo(demo);
+        app.insert_resource(litsdf_render::scene_sync::SdfSceneState {
+            scene: result.scene,
+            selected_shape: None,
+            selected_bone: None,
+            show_bone_gizmos: false,
+            dirty: true, topology_hash: 0,
+        });
+        // Note: demo node graphs are loaded by the editor on first frame via the demo menu mechanism
+    }
+
     // LITSDF_SCENE=path.yaml — load a scene file at startup
     if let Ok(path) = std::env::var("LITSDF_SCENE") {
         match litsdf_core::persistence::load_scene(std::path::Path::new(&path)) {

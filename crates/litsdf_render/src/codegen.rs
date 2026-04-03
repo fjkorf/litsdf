@@ -151,8 +151,8 @@ mod tests {
         assert!(wgsl.contains("fn sdf_scene("));
         assert!(wgsl.contains("fn sdf_scene_material("));
         assert!(wgsl.contains("params.shapes[0]"));
-        // Scene has 5 shapes
-        assert!(wgsl.contains("params.shapes[4u]"));
+        // Default scene has 1 shape (sphere)
+        assert!(wgsl.contains("params.shapes[0]"));
     }
 
     #[test]

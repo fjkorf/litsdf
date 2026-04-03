@@ -1,3 +1,4 @@
+pub mod demos;
 pub mod nodes;
 pub mod project;
 pub mod ui;

@@ -80,7 +80,6 @@ mod tests {
         let mut bone = SdfBone::new("Arm");
         let shape = SdfShape::new("Ball", SdfPrimitive::Sphere { radius: 1.0 });
         let shape_id = shape.id;
-        let bone_id = bone.id;
         bone.shapes.push(shape);
         scene.root_bone.children.push(bone);
 

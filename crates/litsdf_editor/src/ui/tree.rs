@@ -38,7 +38,6 @@ pub enum ContextAction {
     ReparentShape { shape: ShapeId, new_bone: BoneId },
     RenameBone(BoneId, String),
     RenameShape(ShapeId, String),
-    StartRename(RenameTarget),
 }
 
 pub struct TreeResult {
