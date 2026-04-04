@@ -322,14 +322,28 @@ pub fn drag_system(
 // ── Property accessors per mode ─────────────────────────────────
 
 fn get_mode_value(scene: &SdfSceneState, mode: &GizmoMode) -> [f32; 3] {
-    let Some(shape_id) = scene.selected_shape else { return [0.0; 3] };
-    let Some((shape, _)) = scene.scene.root_bone.find_shape(shape_id) else { return [0.0; 3] };
-    match mode {
-        GizmoMode::Translate => shape.transform.translation,
-        GizmoMode::Rotate => shape.transform.rotation,
-        GizmoMode::Elongation => get_modifier_vec3(&shape.modifiers, |m| matches!(m, ShapeModifier::Elongation(_))),
-        GizmoMode::Repetition => get_modifier_vec3(&shape.modifiers, |m| matches!(m, ShapeModifier::Repetition { .. })),
+    // Shape selected — use shape transform/modifiers
+    if let Some(shape_id) = scene.selected_shape {
+        if let Some((shape, _)) = scene.scene.root_bone.find_shape(shape_id) {
+            return match mode {
+                GizmoMode::Translate => shape.transform.translation,
+                GizmoMode::Rotate => shape.transform.rotation,
+                GizmoMode::Elongation => get_modifier_vec3(&shape.modifiers, |m| matches!(m, ShapeModifier::Elongation(_))),
+                GizmoMode::Repetition => get_modifier_vec3(&shape.modifiers, |m| matches!(m, ShapeModifier::Repetition { .. })),
+            };
+        }
     }
+    // Bone selected (no shape) — use bone transform (translate/rotate only)
+    if let Some(bone_id) = scene.selected_bone {
+        if let Some(bone) = scene.scene.root_bone.find_bone(bone_id) {
+            return match mode {
+                GizmoMode::Translate => bone.transform.translation,
+                GizmoMode::Rotate => bone.transform.rotation,
+                _ => [0.0; 3], // bones don't have modifiers
+            };
+        }
+    }
+    [0.0; 3]
 }
 
 fn get_modifier_vec3(modifiers: &[ShapeModifier], pred: impl Fn(&ShapeModifier) -> bool) -> [f32; 3] {
@@ -346,16 +360,28 @@ fn get_modifier_vec3(modifiers: &[ShapeModifier], pred: impl Fn(&ShapeModifier) 
 }
 
 pub fn get_selected_world_pos(scene: &SdfSceneState) -> Option<Vec3> {
+    let overrides = HashMap::new();
+    let world_transforms = compute_bone_world_transforms(&scene.scene.root_bone, Mat4::IDENTITY, &overrides);
+
     if let Some(shape_id) = scene.selected_shape {
         if let Some((shape, bone_id)) = scene.scene.root_bone.find_shape(shape_id) {
-            let overrides = HashMap::new();
-            let world_transforms = compute_bone_world_transforms(&scene.scene.root_bone, Mat4::IDENTITY, &overrides);
             if let Some(&bone_world) = world_transforms.get(&bone_id) {
                 let st = shape.transform.translation;
                 return Some(bone_world.transform_point3(Vec3::new(st[0], st[1], st[2])));
             }
         }
     }
+
+    // Bone selected (no shape) — return bone's world position
+    if let Some(bone_id) = scene.selected_bone {
+        if !bone_id.is_root() {
+            if let Some(&bone_world) = world_transforms.get(&bone_id) {
+                let (_, _, translation) = bone_world.to_scale_rotation_translation();
+                return Some(translation);
+            }
+        }
+    }
+
     None
 }
 
@@ -363,6 +389,13 @@ fn set_selected_translation(scene: &mut SdfSceneState, trans: [f32; 3]) {
     if let Some(shape_id) = scene.selected_shape {
         if let Some((shape, _)) = scene.scene.root_bone.find_shape_mut(shape_id) {
             shape.transform.translation = trans;
+            return;
+        }
+    }
+    // Bone selected (no shape)
+    if let Some(bone_id) = scene.selected_bone {
+        if let Some(bone) = scene.scene.root_bone.find_bone_mut(bone_id) {
+            bone.transform.translation = trans;
         }
     }
 }
@@ -371,6 +404,13 @@ fn set_selected_rotation(scene: &mut SdfSceneState, rot: [f32; 3]) {
     if let Some(shape_id) = scene.selected_shape {
         if let Some((shape, _)) = scene.scene.root_bone.find_shape_mut(shape_id) {
             shape.transform.rotation = rot;
+            return;
+        }
+    }
+    // Bone selected (no shape)
+    if let Some(bone_id) = scene.selected_bone {
+        if let Some(bone) = scene.scene.root_bone.find_bone_mut(bone_id) {
+            bone.transform.rotation = rot;
         }
     }
 }

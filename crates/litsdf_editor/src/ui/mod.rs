@@ -862,6 +862,22 @@ pub fn editor_ui(
                     }
                 }
             }
+        } else if let Some(bone_id) = scene.selected_bone {
+            if let Some(bone) = scene.scene.root_bone.find_bone(bone_id) {
+                match *gizmo_mode {
+                    litsdf_render::picking::GizmoMode::Translate => {
+                        ui.md.state.bone_tx = bone.transform.translation[0] as f64;
+                        ui.md.state.bone_ty = bone.transform.translation[1] as f64;
+                        ui.md.state.bone_tz = bone.transform.translation[2] as f64;
+                    }
+                    litsdf_render::picking::GizmoMode::Rotate => {
+                        ui.md.state.bone_rx = bone.transform.rotation[0] as f64;
+                        ui.md.state.bone_ry = bone.transform.rotation[1] as f64;
+                        ui.md.state.bone_rz = bone.transform.rotation[2] as f64;
+                    }
+                    _ => {} // bones don't have modifiers
+                }
+            }
         }
     } else if !bone_changed && !shape_changed {
         sync::sync_shape_properties(&mut ui, &mut scene);
