@@ -12,16 +12,13 @@ widgets:
   combo_op_opts:
     options: ["Union", "Intersection", "Subtraction", "SmoothUnion", "SmoothIntersection", "SmoothSubtraction", "ChamferUnion", "ChamferIntersection"]
   tx_cfg:
-    min: -10
-    max: 10
+    speed: 0.05
     label: X position
   ty_cfg:
-    min: -10
-    max: 10
+    speed: 0.05
     label: Y position
   tz_cfg:
-    min: -10
-    max: 10
+    speed: 0.05
     label: Z position
   rx_cfg:
     min: -180
@@ -70,7 +67,7 @@ widgets:
   fresnel_cfg:
     min: 0.0
     max: 5.0
-    label: Rim glow
+    label: Rim exponent
   color_mode_opts:
     options: ["Solid", "Cosine Palette", "Noise Tint", "Cellular", "Ridged", "Gradient Snow"]
   noise_amp_cfg:
@@ -130,16 +127,13 @@ widgets:
     max: 5.0
     label: Repeat Z (period)
   bone_tx_cfg:
-    min: -10
-    max: 10
+    speed: 0.05
     label: X position
   bone_ty_cfg:
-    min: -10
-    max: 10
+    speed: 0.05
     label: Y position
   bone_tz_cfg:
-    min: -10
-    max: 10
+    speed: 0.05
     label: Z position
   bone_rx_cfg:
     min: -180
@@ -188,7 +182,7 @@ widgets:
     label: "SSS glow"
   ao_intensity_cfg:
     min: 0.0
-    max: 10.0
+    max: 5.0
     label: "Ambient occlusion"
   shadow_softness_cfg:
     min: 1.0
@@ -236,11 +230,11 @@ widgets:
 
 #### Bone Transform
 
-[slider](bone_tx){bone_tx_cfg}
+[dragvalue](bone_tx){bone_tx_cfg}
 
-[slider](bone_ty){bone_ty_cfg}
+[dragvalue](bone_ty){bone_ty_cfg}
 
-[slider](bone_tz){bone_tz_cfg}
+[dragvalue](bone_tz){bone_tz_cfg}
 
 [slider](bone_rx){bone_rx_cfg}
 
@@ -289,11 +283,11 @@ widgets:
 
 #### Transform
 
-[slider](tx){tx_cfg}
+[dragvalue](tx){tx_cfg}
 
-[slider](ty){ty_cfg}
+[dragvalue](ty){ty_cfg}
 
-[slider](tz){tz_cfg}
+[dragvalue](tz){tz_cfg}
 
 [slider](rx){rx_cfg}
 
