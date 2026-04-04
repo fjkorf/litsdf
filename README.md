@@ -2,7 +2,7 @@
 
 A real-time SDF (Signed Distance Function) shape editor built with Rust, Bevy, and egui.
 
-![litsdf editor — Mushroom Garden demo](tests/screenshots/demo_mushroom.png)
+![litsdf editor — Mushroom Garden demo](docs/demo_mushroom.png)
 
 Create complex 3D objects by combining SDF primitives attached to a bone hierarchy. Shapes are ray-marched in a WGSL fragment shader with PBR lighting and rendered in real time. Animate with a visual node graph editor.
 
