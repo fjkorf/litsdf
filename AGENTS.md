@@ -83,7 +83,7 @@ crates/
 src/
   main.rs              — Editor binary
   bin/viewer.rs        — Viewer binary (no UI)
-scenes/                — Example YAML scene files
+docs/                  — README screenshots
 knowledge/             — Architecture documentation
 scripts/               — generate-api-docs.py
     sdf_raymarch.wgsl — WGSL ray marching fragment shader
