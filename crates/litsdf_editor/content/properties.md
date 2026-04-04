@@ -13,28 +13,38 @@ widgets:
     options: ["Union", "Intersection", "Subtraction", "SmoothUnion", "SmoothIntersection", "SmoothSubtraction", "ChamferUnion", "ChamferIntersection"]
   tx_cfg:
     speed: 0.05
+    decimals: 2
     label: X position
   ty_cfg:
     speed: 0.05
+    decimals: 2
     label: Y position
   tz_cfg:
     speed: 0.05
+    decimals: 2
     label: Z position
   rx_cfg:
     min: -180
     max: 180
+    step: 1.0
+    suffix: "°"
     label: Pitch (X rot)
   ry_cfg:
     min: -180
     max: 180
+    step: 1.0
+    suffix: "°"
     label: Yaw (Y rot)
   rz_cfg:
     min: -180
     max: 180
+    step: 1.0
+    suffix: "°"
     label: Roll (Z rot)
   scale_cfg:
     min: 0.1
     max: 5.0
+    decimals: 2
     label: Uniform scale
   param_a_cfg:
     min: 0.01
@@ -55,14 +65,17 @@ widgets:
   smooth_k_cfg:
     min: 0.0
     max: 2.0
+    decimals: 2
     label: Blend radius (k)
   roughness_cfg:
     min: 0.0
     max: 1.0
+    decimals: 2
     label: Roughness
   metallic_cfg:
     min: 0.0
     max: 1.0
+    decimals: 2
     label: Metallic
   fresnel_cfg:
     min: 0.0
@@ -73,18 +86,22 @@ widgets:
   noise_amp_cfg:
     min: 0.0
     max: 0.5
+    decimals: 3
     label: "Noise (roughness)"
   noise_freq_cfg:
     min: 0.1
     max: 20.0
+    decimals: 1
     label: "Noise (detail)"
   noise_oct_cfg:
     min: 0
     max: 6
+    integer: true
     label: "Noise (layers)"
   symmetry_cfg:
     min: 0.0
     max: 0.1
+    decimals: 3
     label: "Mirror (smoothness)"
   rounding_cfg:
     min: 0.0
@@ -128,24 +145,33 @@ widgets:
     label: Repeat Z (period)
   bone_tx_cfg:
     speed: 0.05
+    decimals: 2
     label: X position
   bone_ty_cfg:
     speed: 0.05
+    decimals: 2
     label: Y position
   bone_tz_cfg:
     speed: 0.05
+    decimals: 2
     label: Z position
   bone_rx_cfg:
     min: -180
     max: 180
+    step: 1.0
+    suffix: "°"
     label: Pitch (X rot)
   bone_ry_cfg:
     min: -180
     max: 180
+    step: 1.0
+    suffix: "°"
     label: Yaw (Y rot)
   bone_rz_cfg:
     min: -180
     max: 180
+    step: 1.0
+    suffix: "°"
     label: Roll (Z rot)
   bone_name_cfg:
     hint: Bone name

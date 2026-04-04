@@ -84,8 +84,7 @@ pub fn sync_shape_properties(ui: &mut EditorUi, scene: &mut SdfSceneState) {
     // Noise
     let new_noise_amp = ui.md.state.noise_amp as f32;
     let new_noise_freq = ui.md.state.noise_freq as f32;
-    let new_noise_oct = ui.md.state.noise_oct.round() as u32;
-    ui.md.state.noise_oct = new_noise_oct as f64; // snap slider to integer
+    let new_noise_oct = ui.md.state.noise_oct as u32;
     if shape.material.noise_amplitude != new_noise_amp
         || shape.material.noise_frequency != new_noise_freq
         || shape.material.noise_octaves != new_noise_oct

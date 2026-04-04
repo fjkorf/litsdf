@@ -3455,7 +3455,7 @@ dependencies = [
  "log",
  "presser",
  "thiserror 1.0.69",
- "windows 0.58.0",
+ "windows 0.54.0",
 ]
 
 [[package]]
@@ -4078,7 +4078,7 @@ dependencies = [
 [[package]]
 name = "litui"
 version = "0.33.3"
-source = "git+https://github.com/fjkorf/litui#0b535d82e9b30085053781d2beb2c10b03a2a5c9"
+source = "git+https://github.com/fjkorf/litui#76376eb2b7f7ad017cfbe4e6ee165bef759f4ae4"
 dependencies = [
  "litui_helpers",
  "litui_macro",
@@ -4087,7 +4087,7 @@ dependencies = [
 [[package]]
 name = "litui_helpers"
 version = "0.33.3"
-source = "git+https://github.com/fjkorf/litui#0b535d82e9b30085053781d2beb2c10b03a2a5c9"
+source = "git+https://github.com/fjkorf/litui#76376eb2b7f7ad017cfbe4e6ee165bef759f4ae4"
 dependencies = [
  "eframe",
 ]
@@ -4095,7 +4095,7 @@ dependencies = [
 [[package]]
 name = "litui_macro"
 version = "0.33.3"
-source = "git+https://github.com/fjkorf/litui#0b535d82e9b30085053781d2beb2c10b03a2a5c9"
+source = "git+https://github.com/fjkorf/litui#76376eb2b7f7ad017cfbe4e6ee165bef759f4ae4"
 dependencies = [
  "litui_helpers",
  "litui_parser",
@@ -4108,7 +4108,7 @@ dependencies = [
 [[package]]
 name = "litui_parser"
 version = "0.33.3"
-source = "git+https://github.com/fjkorf/litui#0b535d82e9b30085053781d2beb2c10b03a2a5c9"
+source = "git+https://github.com/fjkorf/litui#76376eb2b7f7ad017cfbe4e6ee165bef759f4ae4"
 dependencies = [
  "pulldown-cmark",
  "serde",
