@@ -1047,27 +1047,29 @@ pub struct OrbitCamera {
     pub target: Vec3,
     /// Set by editor to trigger a one-shot frame-selection move.
     pub frame_target: Option<Vec3>,
+    /// Set by editor to toggle orthographic projection.
+    pub toggle_ortho: bool,
 }
 ```
 
 
 ### Functions
 
-#### `setup_camera` (line 16)
+#### `setup_camera` (line 18)
 
 ```rust
 pub fn setup_camera(mut commands: Commands)
 ```
 
 
-#### `orbit_camera` (line 35)
+#### `orbit_camera` (line 38)
 
 ```rust
 pub fn orbit_camera(
     mut mouse_motion: MessageReader<MouseMotion>,
     mut scroll: MessageReader<MouseWheel>,
     mouse_button: Res<ButtonInput<MouseButton>>,
-    mut query: Query<(&mut OrbitCamera, &mut Transform)>,
+    mut query: Query<(&mut OrbitCamera, &mut Transform, &mut Projection)>,
     egui_wants: Option<Res<EguiWantsInput>>,
     drag_state: Option<Res<crate::picking::DragState>>,
 )
@@ -1109,14 +1111,14 @@ use crate::scene_sync::SdfSceneState;
 
 ### Structs
 
-#### `ClickTracker` (line 117)
+#### `ClickTracker` (line 119)
 
 ```rust
 pub struct ClickTracker { press_pos: Option<Vec2> }
 ```
 
 
-#### `DragState` (line 120)
+#### `DragState` (line 122)
 
 ```rust
 pub struct DragState {
@@ -1140,6 +1142,7 @@ pub enum GizmoMode {
     #[default]
     Translate,
     Rotate,
+    Scale,
     Elongation,
     Repetition,
 }
@@ -1148,21 +1151,21 @@ pub enum GizmoMode {
 
 ### Functions
 
-#### `label` (line 28)
+#### `label` (line 29)
 
 ```rust
     pub fn label(&self) -> &'static str
 ```
 
 
-#### `pick_shape` (line 88)
+#### `pick_shape` (line 90)
 
 ```rust
 pub fn pick_shape(ray: Ray3d, scene: &SdfScene) -> Option<(ShapeId, BoneId)>
 ```
 
 
-#### `pick_system` (line 130)
+#### `pick_system` (line 132)
 
 ```rust
 pub fn pick_system(
@@ -1176,7 +1179,7 @@ pub fn pick_system(
 ```
 
 
-#### `get_local_axes` (line 168)
+#### `get_local_axes` (line 170)
 
 ```rust
 fn get_local_axes(scene: &SdfSceneState) -> [Vec3; 3]
@@ -1185,7 +1188,7 @@ fn get_local_axes(scene: &SdfSceneState) -> [Vec3; 3]
 Get the local coordinate axes for the selected shape/bone in world space.
 These are the parent bone's world rotation applied to X/Y/Z unit vectors.
 
-#### `draw_handles` (line 208)
+#### `draw_handles` (line 210)
 
 ```rust
 pub fn draw_handles(
@@ -1197,7 +1200,7 @@ pub fn draw_handles(
 ```
 
 
-#### `drag_system` (line 279)
+#### `drag_system` (line 290)
 
 ```rust
 pub fn drag_system(
@@ -1212,7 +1215,7 @@ pub fn drag_system(
 ```
 
 
-#### `get_selected_world_pos` (line 404)
+#### `get_selected_world_pos` (line 441)
 
 ```rust
 pub fn get_selected_world_pos(scene: &SdfSceneState) -> Option<Vec3>
@@ -1712,11 +1715,12 @@ pub struct EditorUi {
     // Graph undo (separate from scene undo)
     pub(crate) graph_undo_stack: Vec<(ShapeId, Snarl<SdfNode>)>,
     pub(crate) rename_state: Option<(tree::RenameTarget, String)>,
+    pub(crate) clipboard: Option<litsdf_core::models::SdfShape>,
 }
 ```
 
 
-#### `TreePanelActions` (line 88)
+#### `TreePanelActions` (line 90)
 
 ```rust
 struct TreePanelActions {
@@ -1734,7 +1738,7 @@ Actions collected from the left panel to apply after rendering.
 
 ### Functions
 
-#### `editor_ui` (line 102)
+#### `editor_ui` (line 104)
 
 ```rust
 pub fn editor_ui(

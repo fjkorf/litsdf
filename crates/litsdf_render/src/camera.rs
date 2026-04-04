@@ -11,6 +11,8 @@ pub struct OrbitCamera {
     pub target: Vec3,
     /// Set by editor to trigger a one-shot frame-selection move.
     pub frame_target: Option<Vec3>,
+    /// Set by editor to toggle orthographic projection.
+    pub toggle_ortho: bool,
 }
 
 pub fn setup_camera(mut commands: Commands) {
@@ -23,6 +25,7 @@ pub fn setup_camera(mut commands: Commands) {
             pitch: 0.15,
             target: Vec3::new(0.0, 0.8, 0.0),
             frame_target: None,
+            toggle_ortho: false,
         },
         AmbientLight {
             color: Color::WHITE,
@@ -36,7 +39,7 @@ pub fn orbit_camera(
     mut mouse_motion: MessageReader<MouseMotion>,
     mut scroll: MessageReader<MouseWheel>,
     mouse_button: Res<ButtonInput<MouseButton>>,
-    mut query: Query<(&mut OrbitCamera, &mut Transform)>,
+    mut query: Query<(&mut OrbitCamera, &mut Transform, &mut Projection)>,
     egui_wants: Option<Res<EguiWantsInput>>,
     drag_state: Option<Res<crate::picking::DragState>>,
 ) {
@@ -55,7 +58,7 @@ pub fn orbit_camera(
         return;
     }
 
-    let (mut orbit, mut transform) = match query.single_mut() {
+    let (mut orbit, mut transform, mut projection) = match query.single_mut() {
         Ok(q) => q,
         Err(_) => return,
     };
@@ -64,6 +67,19 @@ pub fn orbit_camera(
     if let Some(target) = orbit.frame_target.take() {
         orbit.target = target;
         orbit.distance = 3.0;
+    }
+
+    // Consume ortho toggle
+    if orbit.toggle_ortho {
+        orbit.toggle_ortho = false;
+        *projection = match *projection {
+            Projection::Perspective(_) => {
+                let mut ortho = OrthographicProjection::default_3d();
+                ortho.scale = orbit.distance * 0.3;
+                Projection::Orthographic(ortho)
+            }
+            _ => Projection::Perspective(PerspectiveProjection::default()),
+        };
     }
 
     // Rotate on left mouse drag (suppressed when drag handle is active)

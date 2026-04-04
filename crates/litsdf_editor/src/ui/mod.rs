@@ -54,6 +54,7 @@ pub struct EditorUi {
     // Graph undo (separate from scene undo)
     pub(crate) graph_undo_stack: Vec<(ShapeId, Snarl<SdfNode>)>,
     pub(crate) rename_state: Option<(tree::RenameTarget, String)>,
+    pub(crate) clipboard: Option<litsdf_core::models::SdfShape>,
 }
 
 impl Default for EditorUi {
@@ -79,6 +80,7 @@ impl Default for EditorUi {
             node_style: SnarlStyle::new(),
             graph_undo_stack: Vec::new(),
             rename_state: None,
+            clipboard: None,
         }
     }
 }
@@ -133,6 +135,12 @@ pub fn editor_ui(
     if ctx.input_mut(|i| i.consume_shortcut(&shortcuts::DUPLICATE)) {
         shortcut_action = ShortcutAction::Duplicate;
     }
+    if ctx.input_mut(|i| i.consume_shortcut(&shortcuts::COPY)) {
+        shortcut_action = ShortcutAction::Copy;
+    }
+    if ctx.input_mut(|i| i.consume_shortcut(&shortcuts::PASTE)) {
+        shortcut_action = ShortcutAction::Paste;
+    }
     // Single-key shortcuts only fire when no text widget has focus
     if !ctx.wants_keyboard_input() {
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Delete))
@@ -152,12 +160,29 @@ pub fn editor_ui(
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::ALT, egui::Key::H)) {
             shortcut_action = ShortcutAction::ShowAll;
         }
+        // Camera views (numpad and regular number keys both map to Num*)
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Num1)) {
+            shortcut_action = ShortcutAction::CameraFront;
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Num3)) {
+            shortcut_action = ShortcutAction::CameraRight;
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Num7)) {
+            shortcut_action = ShortcutAction::CameraTop;
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Num5)) {
+            shortcut_action = ShortcutAction::ToggleOrtho;
+        }
+
         // Gizmo mode switching
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::G)) {
             *gizmo_mode = litsdf_render::picking::GizmoMode::Translate;
         }
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::R)) {
             *gizmo_mode = litsdf_render::picking::GizmoMode::Rotate;
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::S)) {
+            *gizmo_mode = litsdf_render::picking::GizmoMode::Scale;
         }
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::E)) {
             *gizmo_mode = litsdf_render::picking::GizmoMode::Elongation;
@@ -629,6 +654,49 @@ pub fn editor_ui(
             scene.dirty = true;
             bone_changed = true;
         }
+        ShortcutAction::CameraFront => {
+            if let Ok(mut cam) = camera_query.single_mut() {
+                cam.yaw = 0.0;
+                cam.pitch = 0.0;
+            }
+        }
+        ShortcutAction::CameraRight => {
+            if let Ok(mut cam) = camera_query.single_mut() {
+                cam.yaw = -std::f32::consts::FRAC_PI_2;
+                cam.pitch = 0.0;
+            }
+        }
+        ShortcutAction::CameraTop => {
+            if let Ok(mut cam) = camera_query.single_mut() {
+                cam.yaw = 0.0;
+                cam.pitch = -std::f32::consts::FRAC_PI_2 + 0.001; // slight offset to avoid gimbal lock
+            }
+        }
+        ShortcutAction::ToggleOrtho => {
+            if let Ok(mut cam) = camera_query.single_mut() {
+                cam.toggle_ortho = true;
+            }
+        }
+        ShortcutAction::Copy => {
+            if let Some(shape_id) = scene.selected_shape {
+                if let Some((shape, _)) = scene.scene.root_bone.find_shape(shape_id) {
+                    ui.clipboard = Some(shape.clone());
+                }
+            }
+        }
+        ShortcutAction::Paste => {
+            if let Some(ref clip) = ui.clipboard {
+                let bone_id = scene.selected_bone.unwrap_or(BoneId::root());
+                let mut pasted = clip.duplicate();
+                let pasted_id = pasted.id;
+                if let Some(bone) = scene.scene.root_bone.find_bone_mut(bone_id) {
+                    bone.shapes.push(pasted);
+                }
+                scene.selected_shape = Some(pasted_id);
+                scene.dirty = true;
+                bone_changed = true;
+            }
+        }
         ShortcutAction::None => {}
     }
 
@@ -842,6 +910,9 @@ pub fn editor_ui(
                         ui.md.state.ry = shape.transform.rotation[1] as f64;
                         ui.md.state.rz = shape.transform.rotation[2] as f64;
                     }
+                    litsdf_render::picking::GizmoMode::Scale => {
+                        ui.md.state.uniform_scale = shape.transform.scale as f64;
+                    }
                     litsdf_render::picking::GizmoMode::Elongation => {
                         for m in &shape.modifiers {
                             if let litsdf_core::models::ShapeModifier::Elongation(v) = m {
@@ -981,6 +1052,8 @@ enum ShortcutAction {
     Duplicate, Delete, Deselect,
     FrameSelection, ResetCamera,
     HideSelected, ShowAll,
+    Copy, Paste,
+    CameraFront, CameraRight, CameraTop, ToggleOrtho,
     AddBone, AddShape(String),
 }
 

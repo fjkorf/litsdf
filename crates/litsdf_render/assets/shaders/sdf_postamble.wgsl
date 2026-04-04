@@ -85,8 +85,14 @@ fn geometry_smith(n_dot_v: f32, n_dot_l: f32, roughness: f32) -> f32 {
 
 @fragment
 fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
-    let ray_origin = view.world_position;
-    let ray_dir = normalize(in.world_position.xyz - ray_origin);
+    // Detect orthographic: clip_from_view[3][3] == 1.0 for ortho, 0.0 for perspective
+    let is_ortho = view.clip_from_view[3][3] > 0.5;
+    let ray_origin = select(view.world_position, in.world_position.xyz, is_ortho);
+    let ray_dir = select(
+        normalize(in.world_position.xyz - view.world_position),  // perspective
+        normalize(-view.world_from_view[2].xyz),                  // ortho: camera forward
+        is_ortho
+    );
 
     let t = ray_march(ray_origin, ray_dir);
 
@@ -139,15 +145,33 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let back_kD = (vec3<f32>(1.0, 1.0, 1.0) - back_F) * (1.0 - metallic);
     Lo += (back_kD * albedo / PI) * params.back_color * params.back_intensity * back_n_dot_l;
 
-    // --- Ambient (hemisphere diffuse + reflective sky specular) ---
-    let sky_color = params.fill_color * params.fill_intensity;
-    let ground_color = sky_color * 0.1;
-    let ambient_diffuse = mix(ground_color, sky_color, 0.5 + 0.5 * nor.y) * albedo;
+    // --- Ambient (gradient sky environment) ---
+    // Gradient sky: warm horizon, blue zenith, dark ground
+    let env_nor = mix(
+        vec3<f32>(0.15, 0.12, 0.1),  // ground
+        mix(
+            params.fill_color * 1.5,  // warm horizon
+            params.fill_color * params.fill_intensity,  // blue zenith
+            smoothstep(0.0, 0.5, nor.y)
+        ),
+        smoothstep(-0.05, 0.05, nor.y)
+    );
+    let ambient_diffuse = env_nor * albedo;
 
     let reflect_dir = reflect(-V, nor);
-    let sky_reflect = mix(ground_color, sky_color, 0.5 + 0.5 * reflect_dir.y);
+    let env_ref = mix(
+        vec3<f32>(0.15, 0.12, 0.1),
+        mix(
+            params.fill_color * 1.5,
+            params.fill_color * params.fill_intensity,
+            smoothstep(0.0, 0.5, reflect_dir.y)
+        ),
+        smoothstep(-0.05, 0.05, reflect_dir.y)
+    );
+    // Sun reflection spot in environment
+    let sun_spec = pow(max(dot(reflect_dir, key_dir), 0.0), 64.0) * 2.0;
     let F_ambient = fresnel_schlick_roughness(n_dot_v, f0, roughness);
-    let ambient_specular = sky_reflect * F_ambient;
+    let ambient_specular = (env_ref + vec3<f32>(sun_spec, sun_spec, sun_spec)) * F_ambient;
 
     let kD_ambient = (vec3<f32>(1.0, 1.0, 1.0) - F_ambient) * (1.0 - metallic);
     let ambient = kD_ambient * ambient_diffuse + ambient_specular;

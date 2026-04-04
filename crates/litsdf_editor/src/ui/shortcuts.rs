@@ -8,3 +8,5 @@ pub const REDO: KeyboardShortcut = KeyboardShortcut::new(
     Modifiers::COMMAND.plus(Modifiers::SHIFT), Key::Z,
 );
 pub const DUPLICATE: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::D);
+pub const COPY: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::C);
+pub const PASTE: KeyboardShortcut = KeyboardShortcut::new(Modifiers::COMMAND, Key::V);

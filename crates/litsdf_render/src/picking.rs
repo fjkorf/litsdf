@@ -20,6 +20,7 @@ pub enum GizmoMode {
     #[default]
     Translate,
     Rotate,
+    Scale,
     Elongation,
     Repetition,
 }
@@ -29,6 +30,7 @@ impl GizmoMode {
         match self {
             Self::Translate => "Translate (G)",
             Self::Rotate => "Rotate (R)",
+            Self::Scale => "Scale (S)",
             Self::Elongation => "Elongation (E)",
             Self::Repetition => "Repetition (P)",
         }
@@ -244,6 +246,15 @@ pub fn draw_handles(
                 }
             }
         }
+        GizmoMode::Scale => {
+            // Center sphere with short axis lines
+            let s = HANDLE_PICK_RADIUS * 1.5;
+            gizmos.sphere(Isometry3d::from_translation(pos), s, Color::srgb(0.9, 0.9, 0.9));
+            for (axis, color) in &axes {
+                let tip = pos + *axis * HANDLE_LENGTH * 0.4;
+                gizmos.line(pos, tip, *color);
+            }
+        }
         GizmoMode::Elongation => {
             // Double-headed thick lines with diamond tips
             for (axis, color) in &axes {
@@ -296,8 +307,29 @@ pub fn drag_system(
     if mouse.just_pressed(MouseButton::Left) && !drag.active {
         if let Some(world_pos) = get_selected_world_pos(&scene) {
             if let Ok(ray) = camera_comp.viewport_to_world(cam_transform, cursor_pos) {
+                // Scale mode: single center handle, not per-axis
+                if *mode == GizmoMode::Scale {
+                    let to_center = world_pos - ray.origin;
+                    let proj = to_center.dot(*ray.direction);
+                    if proj > 0.0 {
+                        let closest = ray.origin + *ray.direction * proj;
+                        if (closest - world_pos).length() < HANDLE_PICK_RADIUS * 4.0 {
+                            let screen_up = Vec2::new(0.0, -1.0); // drag up = scale up
+                            let start_value = get_mode_value(&scene, &mode);
+                            drag.active = true;
+                            drag.axis = Vec3::Y;
+                            drag.axis_index = 0;
+                            drag.start_world_pos = world_pos;
+                            drag.start_value = start_value;
+                            drag.start_cursor = cursor_pos;
+                            drag.screen_axis = screen_up;
+                        }
+                    }
+                }
+
                 let handle_len = match *mode {
                     GizmoMode::Elongation => HANDLE_LENGTH * 0.6,
+                    GizmoMode::Scale => 0.0, // handled above
                     _ => HANDLE_LENGTH,
                 };
                 let local = get_local_axes(&scene);
@@ -340,9 +372,12 @@ pub fn drag_system(
                 set_selected_translation(&mut scene, new_val);
             }
             GizmoMode::Rotate => {
-                // Scale rotation more aggressively (degrees)
                 new_val[axis_idx] += world_delta * 50.0;
                 set_selected_rotation(&mut scene, new_val);
+            }
+            GizmoMode::Scale => {
+                let new_scale = (new_val[0] + world_delta).max(0.01);
+                set_selected_scale(&mut scene, new_scale);
             }
             GizmoMode::Elongation => {
                 new_val[axis_idx] = (new_val[axis_idx] + world_delta).max(0.0);
@@ -370,6 +405,7 @@ fn get_mode_value(scene: &SdfSceneState, mode: &GizmoMode) -> [f32; 3] {
             return match mode {
                 GizmoMode::Translate => shape.transform.translation,
                 GizmoMode::Rotate => shape.transform.rotation,
+                GizmoMode::Scale => [shape.transform.scale, 0.0, 0.0],
                 GizmoMode::Elongation => get_modifier_vec3(&shape.modifiers, |m| matches!(m, ShapeModifier::Elongation(_))),
                 GizmoMode::Repetition => get_modifier_vec3(&shape.modifiers, |m| matches!(m, ShapeModifier::Repetition { .. })),
             };
@@ -381,6 +417,7 @@ fn get_mode_value(scene: &SdfSceneState, mode: &GizmoMode) -> [f32; 3] {
             return match mode {
                 GizmoMode::Translate => bone.transform.translation,
                 GizmoMode::Rotate => bone.transform.rotation,
+                GizmoMode::Scale => [bone.transform.scale, 0.0, 0.0],
                 _ => [0.0; 3], // bones don't have modifiers
             };
         }
@@ -453,6 +490,20 @@ fn set_selected_rotation(scene: &mut SdfSceneState, rot: [f32; 3]) {
     if let Some(bone_id) = scene.selected_bone {
         if let Some(bone) = scene.scene.root_bone.find_bone_mut(bone_id) {
             bone.transform.rotation = rot;
+        }
+    }
+}
+
+fn set_selected_scale(scene: &mut SdfSceneState, scale: f32) {
+    if let Some(shape_id) = scene.selected_shape {
+        if let Some((shape, _)) = scene.scene.root_bone.find_shape_mut(shape_id) {
+            shape.transform.scale = scale;
+            return;
+        }
+    }
+    if let Some(bone_id) = scene.selected_bone {
+        if let Some(bone) = scene.scene.root_bone.find_bone_mut(bone_id) {
+            bone.transform.scale = scale;
         }
     }
 }
