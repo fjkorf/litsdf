@@ -1202,7 +1202,7 @@ pub fn drag_system(
 ```
 
 
-#### `get_selected_world_pos` (line 348)
+#### `get_selected_world_pos` (line 362)
 
 ```rust
 pub fn get_selected_world_pos(scene: &SdfSceneState) -> Option<Vec3>
@@ -1789,7 +1789,7 @@ pub fn sync_shape_properties(ui: &mut EditorUi, scene: &mut SdfSceneState)
 ```
 
 
-#### `sync_bone_properties` (line 143)
+#### `sync_bone_properties` (line 142)
 
 ```rust
 pub fn sync_bone_properties(ui: &mut EditorUi, scene: &mut SdfSceneState)

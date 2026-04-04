@@ -64,6 +64,25 @@ Orbit and pan are suppressed when egui wants pointer input or when a drag handle
 
 ---
 
+## Drag Handle Modes (src/picking.rs)
+
+The `GizmoMode` resource controls what property the drag handles edit:
+
+| Mode | Key | Visual | Edits | Works On |
+|------|-----|--------|-------|----------|
+| **Translate** | G | Arrow lines + sphere tips | transform.translation | Shapes + Bones |
+| **Rotate** | R | Circular arcs per axis | transform.rotation | Shapes + Bones |
+| **Elongation** | E | Double-headed lines | ShapeModifier::Elongation | Shapes only |
+| **Repetition** | P | Lines + cross tips | ShapeModifier::Repetition.period | Shapes only |
+
+All modes use RGB for X/Y/Z axes. The drag projects screen delta onto the constrained world axis, scaled by camera distance. Mode keys are guarded by `!ctx.wants_keyboard_input()` (don't fire during text editing).
+
+When a **bone** is selected (no shape), translate and rotate handles appear at the bone's world position. Elongation and Repetition modes are ignored for bones (bones don't have modifiers).
+
+The status bar shows the current gizmo mode name.
+
+---
+
 ## Compass Gizmo (src/gizmos.rs)
 
 ### How It Works

@@ -42,7 +42,8 @@ Six built-in demo scenes accessible via **File > Demo Scenes**:
 - **Keyboard shortcuts** — Cmd+S/O/N/Z/D, Delete, Escape, F, H, Alt+H
 - **Bone tree** — visibility toggles, context menus, drag-to-reparent, inline rename
 - **Properties panel** — scene settings, rendering params, shape/bone editing
-- **Viewport** — orbit, pan, zoom, click-to-select, drag handles, compass gizmo
+- **Viewport** — orbit, pan, zoom, click-to-select, compass gizmo
+- **Gizmo modes** — G (translate), R (rotate), E (elongation), P (repetition) with RGB axis handles for shapes and bones
 - **Render sequence** — export numbered PNGs for video assembly
 
 ### CLI

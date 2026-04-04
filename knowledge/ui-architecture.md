@@ -64,7 +64,7 @@ Shortcut constants defined in `shortcuts.rs`. Checked every frame at the top of 
 
 Undo/redo is handled inline in the egui pass (not a separate Bevy system), keeping all shortcuts in one place.
 
-Single-key shortcuts (F, Escape, Delete) use `ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::F))`.
+Single-key shortcuts (F, Escape, Delete, H, G, R, E, P) use `ctx.input_mut(|i| i.consume_key(Modifiers::NONE, Key::F))`. All guarded by `!ctx.wants_keyboard_input()` — they don't fire when a text field has focus.
 
 All shortcut processing feeds into a `ShortcutAction` enum, dispatched after menu rendering.
 
@@ -72,6 +72,7 @@ All shortcut processing feeds into a `ShortcutAction` enum, dispatched after men
 
 Rendered as `egui::TopBottomPanel::bottom` after the menu bar. Shows:
 - Selection info: "ShapeName (PrimitiveType) on BoneName" or "Bone: BoneName" or "No selection"
+- Gizmo mode: "Translate (G)" / "Rotate (R)" / "Elongation (E)" / "Repetition (P)"
 - Scene stats: "N bones, M shapes"
 
 ## The Tree (ui/tree.rs)

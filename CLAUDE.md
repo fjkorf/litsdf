@@ -31,7 +31,7 @@ The generated `knowledge/api/API.md` covers all four crates with full type defin
 - `knowledge/picking-and-compass.md` — Viewport picking, drag handles, compass gizmo
 - `knowledge/shape-modifiers.md` — Modifier types, encoding, application order
 - `knowledge/rust-conventions.md` — Edition, modules, serde compaction, patterns
-- `knowledge/testing.md` — 66 tests across workspace, screenshot tests
+- `knowledge/testing.md` — 68 tests across workspace, screenshot tests
 - `knowledge/ui-phase-plan.md` — Remaining UI tasks for future work
 - `knowledge/glossary.md` — Action glossary (76 actions, gap analysis)
 - `knowledge/sdf-math-glossary.md` — SDF math concepts and formulas
@@ -44,6 +44,7 @@ The generated `knowledge/api/API.md` covers all four crates with full type defin
 - `knowledge/shader-codegen.md` — Per-pixel shader code generation research
 - `knowledge/pbr-lighting.md` — PBR (Cook-Torrance) lighting upgrade research
 - `knowledge/demo-scenes.md` — 6 demo scenes, feature coverage, loading instructions
+- `knowledge/litui-feature-request.md` — litui numeric config features (all 5 implemented)
 
 ## Running
 

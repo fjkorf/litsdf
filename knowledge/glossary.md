@@ -215,6 +215,17 @@ Every operation the user can perform in litsdf, organized by semantic group. Eac
 - **Chamfer ops** — ChamferUnion and ChamferIntersection (beveled boolean edges)
 - **8 combination operations**, 6 color modes, 13 SDF primitives
 
+### Editor Polish (complete)
+- **Gizmo mode switching** — G/R/E/P for translate/rotate/elongation/repetition handles
+- **Bone gizmo handles** — translate + rotate on selected bones
+- **Drag-to-reparent** — drag shapes/bones in tree
+- **Inline rename** — double-click in tree
+- **H/Alt+H** — toggle/show all visibility
+- **Render sequence** — `LITSDF_RENDER_SEQUENCE` for video frame export
+- **Position drag values** — unbounded drag input for tx/ty/tz
+- **Integer noise octaves** — native integer slider via litui
+- **Rotation step/suffix** — 1° step with "°" suffix
+
 ### Future (nice-to-have)
 - Copy/paste clipboard
 - Reorder shapes (drag in tree)

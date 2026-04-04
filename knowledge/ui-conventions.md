@@ -98,12 +98,12 @@ Research findings from Blender, Unity, Houdini, MagicaCSG, Maya, and 3ds Max. De
 
 | Key | Action | Priority for litsdf |
 |-----|--------|---------------------|
-| G | Grab/Move (enter drag mode) | Future |
-| R | Rotate (enter rotate mode) | Future |
+| G | Grab/Move (translate gizmo mode) | **Implemented** |
+| R | Rotate (rotate gizmo mode) | **Implemented** |
 | S | Scale (enter scale mode) | Future |
 | F | Frame selection (zoom to fit) | **Implemented** |
-| H | Hide selected | Future |
-| Alt+H | Unhide all | Future |
+| H | Hide selected | **Implemented** |
+| Alt+H | Unhide all | **Implemented** |
 | Shift+A | Add menu popup | Future |
 | N | Toggle properties panel | Future |
 | Numpad 1/3/7 | Front/Side/Top view | Future |

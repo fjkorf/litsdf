@@ -33,6 +33,11 @@
 - **PBR Lighting** — Cook-Torrance BRDF (GGX + Fresnel-Schlick + Smith geometry)
 - **Shader codegen** — unrolled shape evaluation, preamble/body/postamble split, topology-driven recompilation
 - **6 demo scenes** — Primitive Gallery, Boolean Sampler, Modifier Parade, Mushroom Garden, Robot Friend, Abstract Sculpture (File > Demo Scenes menu)
+- **Gizmo mode switching** — G (translate), R (rotate), E (elongation), P (repetition) with distinct handle visuals
+- **Bone gizmo handles** — translate + rotate handles work on bones when selected (no shape)
+- **litui numeric features** — integer sliders, step quantization, decimal precision, dragvalue range/suffix
+- **Position drag values** — unbounded drag inputs replace bounded sliders for tx/ty/tz
+- **Single-key shortcut guard** — Delete/F/H/G/R/E/P don't fire during text editing
 
 ## Removed (replaced by node editor)
 
