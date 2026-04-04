@@ -119,7 +119,8 @@ pub struct ClickTracker { press_pos: Option<Vec2> }
 #[derive(Resource, Default)]
 pub struct DragState {
     pub active: bool,
-    pub axis: Vec3,
+    pub axis: Vec3,         // local axis direction in world space (for projection)
+    pub axis_index: usize,  // 0=X, 1=Y, 2=Z (which component to modify)
     pub start_world_pos: Vec3,
     pub start_value: [f32; 3],
     pub start_cursor: Vec2,
@@ -160,6 +161,45 @@ pub fn pick_system(
     }
 }
 
+// ── Local axes helper ───────────────────────────────────────────
+
+/// Get the local coordinate axes for the selected shape/bone in world space.
+/// These are the parent bone's world rotation applied to X/Y/Z unit vectors.
+fn get_local_axes(scene: &SdfSceneState) -> [Vec3; 3] {
+    let overrides = HashMap::new();
+    let world_transforms = compute_bone_world_transforms(&scene.scene.root_bone, Mat4::IDENTITY, &overrides);
+
+    let bone_id = if let Some(shape_id) = scene.selected_shape {
+        scene.scene.root_bone.find_shape(shape_id).map(|(_, bid)| bid)
+    } else {
+        // For bone selection, use the bone's PARENT rotation
+        // (the bone's own transform is what we're editing, so the frame is the parent's)
+        scene.selected_bone.and_then(|bid| {
+            find_parent_bone_id(&scene.scene.root_bone, bid)
+        })
+    };
+
+    if let Some(bid) = bone_id {
+        if let Some(&bone_world) = world_transforms.get(&bid) {
+            let (_, rotation, _) = bone_world.to_scale_rotation_translation();
+            return [
+                rotation * Vec3::X,
+                rotation * Vec3::Y,
+                rotation * Vec3::Z,
+            ];
+        }
+    }
+    [Vec3::X, Vec3::Y, Vec3::Z] // fallback to world axes
+}
+
+fn find_parent_bone_id(bone: &litsdf_core::models::SdfBone, target: litsdf_core::models::BoneId) -> Option<litsdf_core::models::BoneId> {
+    for child in &bone.children {
+        if child.id == target { return Some(bone.id); }
+        if let Some(id) = find_parent_bone_id(child, target) { return Some(id); }
+    }
+    None
+}
+
 // ── Drag handle system ──────────────────────────────────────────
 
 const HANDLE_LENGTH: f32 = 0.8;
@@ -173,10 +213,11 @@ pub fn draw_handles(
 ) {
     let Some(pos) = get_selected_world_pos(&scene) else { return };
 
+    let local = get_local_axes(&scene);
     let axes = [
-        (Vec3::X, Color::srgb(1.0, 0.2, 0.2)),
-        (Vec3::Y, Color::srgb(0.2, 1.0, 0.2)),
-        (Vec3::Z, Color::srgb(0.2, 0.2, 1.0)),
+        (local[0], Color::srgb(1.0, 0.2, 0.2)),
+        (local[1], Color::srgb(0.2, 1.0, 0.2)),
+        (local[2], Color::srgb(0.2, 0.2, 1.0)),
     ];
 
     match *mode {
@@ -259,8 +300,8 @@ pub fn drag_system(
                     GizmoMode::Elongation => HANDLE_LENGTH * 0.6,
                     _ => HANDLE_LENGTH,
                 };
-                let axes = [Vec3::X, Vec3::Y, Vec3::Z];
-                for axis in &axes {
+                let local = get_local_axes(&scene);
+                for (i, axis) in local.iter().enumerate() {
                     let tip = world_pos + *axis * handle_len;
                     let to_tip = tip - ray.origin;
                     let proj = to_tip.dot(*ray.direction);
@@ -271,6 +312,7 @@ pub fn drag_system(
                             let start_value = get_mode_value(&scene, &mode);
                             drag.active = true;
                             drag.axis = *axis;
+                            drag.axis_index = i;
                             drag.start_world_pos = world_pos;
                             drag.start_value = start_value;
                             drag.start_cursor = cursor_pos;
@@ -290,7 +332,7 @@ pub fn drag_system(
         let world_delta = proj * cam_dist * 0.002;
 
         let mut new_val = drag.start_value;
-        let axis_idx = if drag.axis == Vec3::X { 0 } else if drag.axis == Vec3::Y { 1 } else { 2 };
+        let axis_idx = drag.axis_index;
 
         match *mode {
             GizmoMode::Translate => {
