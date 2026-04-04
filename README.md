@@ -26,7 +26,7 @@ Six built-in demo scenes accessible via **File > Demo Scenes**:
 - **8 combination operations** — Union, Intersection, Subtraction, Smooth variants, Chamfer Union/Intersection
 - **6 domain modifiers** — Rounding, Shell, Twist, Bend, Elongation, Repetition
 - **6 color modes** — Solid, Cosine Palette, Noise Tint, Cellular/Voronoi, Ridged Multifractal, Gradient Snow
-- **PBR lighting** — Cook-Torrance BRDF (GGX + Fresnel-Schlick + Smith geometry), energy-conserving
+- **PBR lighting** — Cook-Torrance BRDF, gradient sky environment with sun reflection spot
 - **Shader codegen** — scene topology compiles to unrolled WGSL, hot-reloaded by Bevy
 
 ### Node Editor
@@ -39,11 +39,13 @@ Six built-in demo scenes accessible via **File > Demo Scenes**:
 
 ### Editor
 - **Menu bar** — File, Edit, Add, View with keyboard shortcut hints
-- **Keyboard shortcuts** — Cmd+S/O/N/Z/D, Delete, Escape, F, H, Alt+H
+- **Keyboard shortcuts** — Cmd+S/O/N/Z/D/C/V, Delete, Escape, F, H, Alt+H, G/R/S/E/P, 1/3/7/5
 - **Bone tree** — visibility toggles, context menus, drag-to-reparent, inline rename
 - **Properties panel** — scene settings, rendering params, shape/bone editing
 - **Viewport** — orbit, pan, zoom, click-to-select, compass gizmo
-- **Gizmo modes** — G (translate), R (rotate), E (elongation), P (repetition) with RGB axis handles for shapes and bones
+- **Gizmo modes** — G (translate), R (rotate), S (scale), E (elongation), P (repetition) with bone-local RGB axis handles
+- **Camera views** — 1 (front), 3 (right), 7 (top), 5 (toggle perspective/orthographic)
+- **Copy/paste** — Cmd+C/V for shapes
 - **Render sequence** — export numbered PNGs for video assembly
 
 ### CLI

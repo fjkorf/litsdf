@@ -59,8 +59,22 @@ The `OrbitCamera` component supports:
 - **Middle drag**: Pan (shifts target position, speed scales with distance)
 - **Scroll**: Zoom (distance clamped to 0.5–50.0)
 - **Frame selection**: `frame_target: Option<Vec3>` — one-shot, set by editor (F key), consumed by camera system to snap target and set distance to 3.0
+- **Ortho toggle**: `toggle_ortho: bool` — one-shot, swaps Bevy `Projection` between `Perspective` and `Orthographic`
 
 Orbit and pan are suppressed when egui wants pointer input or when a drag handle is active.
+
+### Camera Views (keyboard)
+
+| Key | View | Effect |
+|-----|------|--------|
+| 1 (or Numpad 1) | Front | yaw=0, pitch=0 |
+| 3 (or Numpad 3) | Right | yaw=-90° |
+| 7 (or Numpad 7) | Top | yaw=0, pitch=-90° |
+| 5 (or Numpad 5) | Toggle ortho | Swaps perspective ↔ orthographic projection |
+
+egui maps numpad and regular number keys to the same `Key::Num*` variants.
+
+**Orthographic ray marching:** The shader detects orthographic via `view.clip_from_view[3][3] > 0.5`. In ortho mode, rays are parallel (camera forward direction) with per-pixel origins from the bounding cube. In perspective mode, rays diverge from the camera position.
 
 ---
 
@@ -72,6 +86,7 @@ The `GizmoMode` resource controls what property the drag handles edit:
 |------|-----|--------|-------|----------|
 | **Translate** | G | Arrow lines + sphere tips | transform.translation | Shapes + Bones |
 | **Rotate** | R | Circular arcs per axis | transform.rotation | Shapes + Bones |
+| **Scale** | S | Center sphere + short axis lines | transform.scale (uniform) | Shapes + Bones |
 | **Elongation** | E | Double-headed lines | ShapeModifier::Elongation | Shapes only |
 | **Repetition** | P | Lines + cross tips | ShapeModifier::Repetition.period | Shapes only |
 

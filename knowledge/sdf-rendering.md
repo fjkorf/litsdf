@@ -69,7 +69,7 @@ Physically-based rendering with energy conservation:
   - **D** = GGX/Trowbridge-Reitz normal distribution (roughness-based lobe shape)
   - **F** = Fresnel-Schlick approximation (`F0 = mix(0.04, albedo, metallic)`)
   - **G** = Smith geometry with Schlick-GGX (microfacet self-shadowing)
-- **Ambient:** Hemisphere diffuse (sky/ground interpolation) + reflective sky specular with roughness-adjusted Fresnel
+- **Ambient:** Gradient sky environment (dark ground → warm horizon → blue zenith) for diffuse + specular, sun reflection spot for metal highlights, roughness-adjusted Fresnel
 - **Soft shadows:** Ray march from hit point toward light, track `min(k*h/t)` for penumbra
 - **Ambient occlusion:** Sample SDF along normal at increasing distances
 - **SSS:** Approximate subsurface scattering (red tint when backlit)

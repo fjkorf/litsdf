@@ -225,9 +225,12 @@ Every operation the user can perform in litsdf, organized by semantic group. Eac
 - **Position drag values** — unbounded drag input for tx/ty/tz
 - **Integer noise octaves** — native integer slider via litui
 - **Rotation step/suffix** — 1° step with "°" suffix
+- **Scale gizmo (S key)** — uniform scale via center sphere handle
+- **Copy/paste (Cmd+C/V)** — clipboard for shapes
+- **Camera views (1/3/7/5)** — front/right/top snap views + orthographic toggle
+- **Gradient sky environment** — warm horizon, blue zenith, sun reflection spot
 
 ### Future (nice-to-have)
-- Copy/paste clipboard
 - Reorder shapes (drag in tree)
 - Drag to reparent (in tree)
 - Group selection

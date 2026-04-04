@@ -45,6 +45,7 @@ The generated `knowledge/api/API.md` covers all four crates with full type defin
 - `knowledge/pbr-lighting.md` — PBR (Cook-Torrance) lighting upgrade research
 - `knowledge/demo-scenes.md` — 6 demo scenes, feature coverage, loading instructions
 - `knowledge/litui-feature-request.md` — litui numeric config features (all 5 implemented)
+- `knowledge/pbr-lighting.md` also covers gradient sky environment upgrade
 
 ## Running
 
@@ -76,3 +77,4 @@ LITSDF_SCREENSHOT=path.png cargo run --bin litsdf  # screenshot
 - WGSL `vec3(scalar)` shorthand is NOT supported by Bevy's naga — always use `vec3<f32>(x, x, x)` with explicit components
 - Shader codegen writes to `assets/shaders/sdf_raymarch.wgsl` (runtime copy, gitignored) on topology change — Bevy hot-reloads automatically. Source shader + preamble/postamble live in `crates/litsdf_render/assets/shaders/` (committed). On startup, `ensure_runtime_shader()` copies the fallback loop-based shader to the runtime location.
 - Lighting uses Cook-Torrance PBR (GGX + Fresnel-Schlick + Smith geometry), NOT Blinn-Phong
+- Shader supports orthographic projection — detects via `view.clip_from_view[3][3]` and switches to parallel rays. Toggle with key 5.

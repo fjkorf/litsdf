@@ -55,19 +55,21 @@ let diffuse = kD * albedo / PI;
 let Lo = (diffuse + specular) * n_dot_l * shadow;
 ```
 
-## Ambient Lighting Without Cubemaps
+## Ambient Lighting — Gradient Sky Environment (Implemented)
 
-**Hemisphere lighting (analytical sky):**
-```wgsl
-let ambient_diffuse = mix(ground_color, sky_color, 0.5 + 0.5 * nor.y) * albedo;
-```
+Multi-stop analytical gradient: dark ground → warm horizon → blue zenith. Plus a sun reflection spot for glossy metals.
 
-**Ambient specular (reflective sky sample):**
 ```wgsl
-let reflect_dir = reflect(-V, nor);
-let sky_reflect = mix(ground_color, sky_color, 0.5 + 0.5 * reflect_dir.y);
-let F_ambient = fresnel_schlick_roughness(n_dot_v, f0, roughness);
-let ambient_specular = sky_reflect * F_ambient;
+// Gradient sky: warm horizon, blue zenith, dark ground
+let env = mix(
+    vec3(0.15, 0.12, 0.1),  // ground
+    mix(fill_color * 1.5, fill_color * intensity, smoothstep(0.0, 0.5, dir.y)),  // horizon → zenith
+    smoothstep(-0.05, 0.05, dir.y)  // sharp ground/sky transition
+);
+
+// Sun reflection spot (bright highlight in glossy reflections)
+let sun_spec = pow(max(dot(reflect_dir, key_dir), 0.0), 64.0) * 2.0;
+ambient_specular += sun_spec;
 ```
 
 **Combined:**

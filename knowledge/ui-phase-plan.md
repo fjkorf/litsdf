@@ -39,6 +39,11 @@
 - **Position drag values** — unbounded drag inputs replace bounded sliders for tx/ty/tz
 - **Single-key shortcut guard** — Delete/F/H/G/R/E/P don't fire during text editing
 - **Bone-local gizmo axes** — handles align with parent bone rotation, not world axes
+- **Scale gizmo mode (S)** — uniform scale via center sphere handle
+- **Copy/paste (Cmd+C/V)** — copy selected shape, paste onto same bone with new UUID
+- **Gradient sky environment** — warm horizon, blue zenith, sun reflection spot for metal reflections
+- **Camera views (1/3/7)** — front, right, top snap views
+- **Orthographic toggle (5)** — perspective ↔ orthographic with shader parallel ray support
 
 ## Removed (replaced by node editor)
 

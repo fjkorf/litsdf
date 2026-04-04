@@ -100,14 +100,14 @@ Research findings from Blender, Unity, Houdini, MagicaCSG, Maya, and 3ds Max. De
 |-----|--------|---------------------|
 | G | Grab/Move (translate gizmo mode) | **Implemented** |
 | R | Rotate (rotate gizmo mode) | **Implemented** |
-| S | Scale (enter scale mode) | Future |
+| S | Scale (scale gizmo mode) | **Implemented** |
 | F | Frame selection (zoom to fit) | **Implemented** |
 | H | Hide selected | **Implemented** |
 | Alt+H | Unhide all | **Implemented** |
 | Shift+A | Add menu popup | Future |
 | N | Toggle properties panel | Future |
-| Numpad 1/3/7 | Front/Side/Top view | Future |
-| Numpad 5 | Toggle perspective/ortho | Future |
+| 1/Numpad 1, 3, 7 | Front/Right/Top view | **Implemented** |
+| 5/Numpad 5 | Toggle perspective/ortho | **Implemented** |
 | Middle mouse | Pan camera | **Implemented** |
 
 ---
