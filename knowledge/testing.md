@@ -1,9 +1,9 @@
 # Testing Strategy
 
-## Unit Tests (68 tests, cargo test --workspace)
+## Unit Tests (76 tests, cargo test --workspace)
 
 Tests are distributed across crates:
-- `litsdf_core`: 31 tests (models, scene, persistence)
+- `litsdf_core`: 39 tests (models, scene, persistence, physics)
 - `litsdf_editor`: 17 tests (UI, undo, node graph, project persistence, presets, demo scenes)
 - `litsdf_render`: 4 tests (shader struct size, codegen default scene, codegen empty scene, topology hash)
 - `litsdf_cli`: 16 integration tests (CLI workflow end-to-end)
@@ -33,6 +33,16 @@ Tests are distributed across crates:
 - `scene_new` — Empty scene with root bone and default light
 - `scene_info` — SceneInfo struct with counts and animation flag
 - `scene_tree_string` — ASCII tree contains bone and shape names
+
+### Physics Tests (physics.rs)
+- `zero_mass_no_offset` — Kinematic bone (mass 0) produces no physics offset
+- `positive_mass_falls` — Dynamic bone falls downward under gravity
+- `reset_zeroes_velocity` — reset_physics clears all velocities
+- `damping_reduces_velocity` — Heavy damping (0.5) limits terminal velocity
+- `collider_sphere` — Sphere shape → ColliderApprox::Sphere
+- `collider_capsule` — Capsule shape → ColliderApprox::Capsule
+- `collider_fallback_bounding` — No shapes → fallback sphere with min radius
+- `damping_conversion` — damping_to_avian maps 0.95→~3, 0.70→~21
 
 ### Scene Tests (scene.rs)
 - `flatten_default_scene` — Default scene flattens to correct shape count and types
@@ -101,9 +111,10 @@ Each test creates a temp YAML file, runs CLI commands via the binary, and verifi
 LITSDF_SCREENSHOT=tests/screenshots/test.png cargo run
 ```
 
-Captures at frame 15, exits at frame 20. Implemented in `testing.rs`:
+Captures at frame 30 (configurable), exits 5 frames later. Implemented in `testing.rs`:
 - `ScreenshotConfig` resource with path, capture_frame, exit_frame
 - `auto_screenshot` system runs in Update, spawns `Screenshot::primary_window()` at the right frame
+- `LITSDF_SCREENSHOT_FRAME=N` overrides the capture frame (default 30). Use higher values for physics demos.
 
 ### Multi-Step Sequence (LITSDF_TEST_SEQUENCE)
 

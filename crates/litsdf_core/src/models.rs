@@ -30,6 +30,56 @@ impl BoneId {
     pub fn is_root(&self) -> bool { self.0.is_nil() }
 }
 
+// ── Collider approximation ──────────────────────────────────────
+
+/// Simple collider shape for physics approximation (no Bevy dependency).
+#[derive(Debug, Clone, PartialEq)]
+pub enum ColliderApprox {
+    Sphere { radius: f32 },
+    Capsule { radius: f32, half_height: f32 },
+    Box { half_extents: [f32; 3] },
+}
+
+// ── Bone physics ────────────────────────────────────────────────
+
+fn default_damping() -> f32 { 0.95 }
+fn is_default_damping(v: &f32) -> bool { *v == 0.95 }
+fn is_none_limit(v: &Option<[f32; 2]>) -> bool { v.is_none() }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct RotationLimits {
+    #[serde(default, skip_serializing_if = "is_none_limit")]
+    pub pitch: Option<[f32; 2]>,
+    #[serde(default, skip_serializing_if = "is_none_limit")]
+    pub yaw: Option<[f32; 2]>,
+    #[serde(default, skip_serializing_if = "is_none_limit")]
+    pub roll: Option<[f32; 2]>,
+}
+
+impl RotationLimits {
+    pub fn is_default(&self) -> bool { *self == Self::default() }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct BonePhysicsProps {
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub mass: f32,
+    #[serde(default = "default_damping", skip_serializing_if = "is_default_damping")]
+    pub damping: f32,
+    #[serde(default, skip_serializing_if = "RotationLimits::is_default")]
+    pub rotation_limits: RotationLimits,
+}
+
+impl Default for BonePhysicsProps {
+    fn default() -> Self {
+        Self { mass: 0.0, damping: 0.95, rotation_limits: RotationLimits::default() }
+    }
+}
+
+impl BonePhysicsProps {
+    pub fn is_default(&self) -> bool { *self == Self::default() }
+}
+
 // ── Bone hierarchy ──────────────────────────────────────────────
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -40,6 +90,8 @@ pub struct SdfBone {
     pub transform: ShapeTransform,
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
     pub visible: bool,
+    #[serde(default, skip_serializing_if = "BonePhysicsProps::is_default")]
+    pub physics: BonePhysicsProps,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub children: Vec<SdfBone>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -53,6 +105,7 @@ impl SdfBone {
             name: "Root".into(),
             transform: ShapeTransform::default(),
             visible: true,
+            physics: BonePhysicsProps::default(),
             children: Vec::new(),
             shapes: Vec::new(),
         }
@@ -64,6 +117,7 @@ impl SdfBone {
             name: name.into(),
             transform: ShapeTransform::default(),
             visible: true,
+            physics: BonePhysicsProps::default(),
             children: Vec::new(),
             shapes: Vec::new(),
         }
@@ -157,6 +211,7 @@ impl SdfBone {
             name: format!("{} Copy", self.name),
             transform: self.transform.clone(),
             visible: self.visible,
+            physics: self.physics.clone(),
             children: self.children.iter().map(|c| c.duplicate_deep()).collect(),
             shapes: self.shapes.iter().map(|s| s.duplicate()).collect(),
         };
@@ -253,6 +308,12 @@ impl SdfBone {
         self.shapes.len() + self.children.iter().map(|c| c.shape_count()).sum::<usize>()
     }
 
+    /// Check if any bone in this subtree has physics mass > 0.
+    pub fn has_physics_bones(bone: &SdfBone) -> bool {
+        if bone.physics.mass > 0.0 { return true; }
+        bone.children.iter().any(|c| Self::has_physics_bones(c))
+    }
+
     pub fn reset_transform(&mut self) {
         self.transform = ShapeTransform::default();
     }
@@ -286,6 +347,11 @@ pub struct SceneSettings {
     // Post-processing
     #[serde(default = "default_vignette", skip_serializing_if = "is_default_vignette")]
     pub vignette_intensity: f32,
+    // Physics
+    #[serde(default = "default_gravity", skip_serializing_if = "is_default_gravity")]
+    pub gravity: f32,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub ground_plane: bool,
 }
 
 fn default_fill_color() -> [f32; 3] { [0.4, 0.5, 0.7] }
@@ -306,6 +372,8 @@ fn default_shadow_softness() -> f32 { 8.0 }
 fn is_default_shadow_softness(v: &f32) -> bool { *v == 8.0 }
 fn default_vignette() -> f32 { 0.3 }
 fn is_default_vignette(v: &f32) -> bool { *v == 0.3 }
+fn default_gravity() -> f32 { -9.81 }
+fn is_default_gravity(v: &f32) -> bool { *v == -9.81 }
 
 impl Default for SceneSettings {
     fn default() -> Self {
@@ -319,6 +387,8 @@ impl Default for SceneSettings {
             ao_intensity: default_ao_intensity(),
             shadow_softness: default_shadow_softness(),
             vignette_intensity: default_vignette(),
+            gravity: default_gravity(),
+            ground_plane: false,
         }
     }
 }
@@ -332,6 +402,8 @@ impl SceneSettings {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SdfScene {
     pub name: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub description: String,
     pub root_bone: SdfBone,
     #[serde(default, skip_serializing_if = "CombinationOp::is_default")]
     pub combination: CombinationOp,
@@ -363,6 +435,7 @@ impl SdfScene {
     pub fn new(name: impl Into<String>) -> Self {
         Self {
             name: name.into(),
+            description: String::new(),
             root_bone: SdfBone::root(),
             combination: CombinationOp::Union,
             light_dir: default_light_dir(),
@@ -420,6 +493,7 @@ impl SdfScene {
         root.shapes.push(sphere);
         Self {
             name: "Untitled".into(),
+            description: String::new(),
             root_bone: root,
             combination: CombinationOp::Union,
             light_dir: default_light_dir(),

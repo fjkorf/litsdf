@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 litsdf_core = { workspace = true }
+avian3d = { workspace = true }
 bevy = { workspace = true }
 bevy_egui = { workspace = true }
 egui = { workspace = true }

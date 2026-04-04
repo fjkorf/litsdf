@@ -89,7 +89,7 @@ mod tests {
         for i in 0..n_shapes {
             root.shapes.push(SdfShape::new(format!("Shape{i}"), SdfPrimitive::Sphere { radius: 1.0 }));
         }
-        SdfScene { name: "test".into(), root_bone: root, combination: CombinationOp::Union, light_dir: [0.6, 0.8, 0.4], settings: SceneSettings::default() }
+        SdfScene { name: "test".into(), description: String::new(), root_bone: root, combination: CombinationOp::Union, light_dir: [0.6, 0.8, 0.4], settings: SceneSettings::default() }
     }
 
     #[test]

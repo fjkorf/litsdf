@@ -27,7 +27,7 @@ fn main() {
                     selected_shape: None,
                     selected_bone: None,
                     show_bone_gizmos: false,
-                    dirty: true, topology_hash: 0,
+                    dirty: true, topology_hash: 0, use_avian: false, physics_readings: std::collections::HashMap::new(), force_outputs: std::collections::HashMap::new(), physics_paused: true,
                 });
             }
             Err(e) => eprintln!("Failed to load scene: {e}"),

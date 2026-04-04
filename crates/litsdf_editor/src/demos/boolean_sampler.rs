@@ -61,6 +61,7 @@ pub fn create() -> DemoResult {
     DemoResult {
         scene: SdfScene {
             name: "Boolean Sampler".into(),
+            description: "Four pairs of shapes demonstrating boolean operations: Subtraction, SmoothIntersection, ChamferUnion, and SmoothSubtraction.".into(),
             root_bone: root,
             combination: CombinationOp::Union,
             light_dir: [0.6, 0.8, 0.4],

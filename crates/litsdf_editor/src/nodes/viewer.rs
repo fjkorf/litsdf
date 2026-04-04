@@ -37,6 +37,9 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
                 Color32::from_rgb(0x3a, 0x3a, 0x7a), // blue — math
             SdfNode::Vec3Compose | SdfNode::Vec3Decompose | SdfNode::CosinePalette =>
                 Color32::from_rgb(0x6a, 0x4a, 0x2a), // amber — vec3/color
+            SdfNode::BoneVelocity | SdfNode::BoneAngularVelocity
+            | SdfNode::BoneWorldPosition | SdfNode::BoneSpeed =>
+                Color32::from_rgb(0x8a, 0x5a, 0x1a), // amber — physics input
             SdfNode::ShapeOutput | SdfNode::BoneOutput =>
                 Color32::from_rgb(0x7a, 0x3a, 0x2a), // red-orange — output
         };
@@ -311,6 +314,27 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
             snarl.insert_node(pos, SdfNode::CosinePalette);
             ui.close();
         }
+
+        ui.separator();
+
+        ui.menu_button("Physics", |ui| {
+            if ui.button("Bone Velocity").clicked() {
+                snarl.insert_node(pos, SdfNode::BoneVelocity);
+                ui.close();
+            }
+            if ui.button("Bone Angular Vel").clicked() {
+                snarl.insert_node(pos, SdfNode::BoneAngularVelocity);
+                ui.close();
+            }
+            if ui.button("Bone World Pos").clicked() {
+                snarl.insert_node(pos, SdfNode::BoneWorldPosition);
+                ui.close();
+            }
+            if ui.button("Bone Speed").clicked() {
+                snarl.insert_node(pos, SdfNode::BoneSpeed);
+                ui.close();
+            }
+        });
 
         ui.separator();
 

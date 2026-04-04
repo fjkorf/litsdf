@@ -24,7 +24,35 @@ pub struct BoneId(pub Uuid);
 ```
 
 
-#### `SdfBone` (line 36)
+#### `RotationLimits` (line 50)
+
+```rust
+pub struct RotationLimits {
+    #[serde(default, skip_serializing_if = "is_none_limit")]
+    pub pitch: Option<[f32; 2]>,
+    #[serde(default, skip_serializing_if = "is_none_limit")]
+    pub yaw: Option<[f32; 2]>,
+    #[serde(default, skip_serializing_if = "is_none_limit")]
+    pub roll: Option<[f32; 2]>,
+}
+```
+
+
+#### `BonePhysicsProps` (line 64)
+
+```rust
+pub struct BonePhysicsProps {
+    #[serde(default, skip_serializing_if = "is_zero")]
+    pub mass: f32,
+    #[serde(default = "default_damping", skip_serializing_if = "is_default_damping")]
+    pub damping: f32,
+    #[serde(default, skip_serializing_if = "RotationLimits::is_default")]
+    pub rotation_limits: RotationLimits,
+}
+```
+
+
+#### `SdfBone` (line 86)
 
 ```rust
 pub struct SdfBone {
@@ -34,6 +62,8 @@ pub struct SdfBone {
     pub transform: ShapeTransform,
     #[serde(default = "default_true", skip_serializing_if = "is_true")]
     pub visible: bool,
+    #[serde(default, skip_serializing_if = "BonePhysicsProps::is_default")]
+    pub physics: BonePhysicsProps,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub children: Vec<SdfBone>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -42,7 +72,7 @@ pub struct SdfBone {
 ```
 
 
-#### `SceneSettings` (line 264)
+#### `SceneSettings` (line 325)
 
 ```rust
 pub struct SceneSettings {
@@ -70,15 +100,22 @@ pub struct SceneSettings {
     // Post-processing
     #[serde(default = "default_vignette", skip_serializing_if = "is_default_vignette")]
     pub vignette_intensity: f32,
+    // Physics
+    #[serde(default = "default_gravity", skip_serializing_if = "is_default_gravity")]
+    pub gravity: f32,
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub ground_plane: bool,
 }
 ```
 
 
-#### `SdfScene` (line 333)
+#### `SdfScene` (line 403)
 
 ```rust
 pub struct SdfScene {
     pub name: String,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub description: String,
     pub root_bone: SdfBone,
     #[serde(default, skip_serializing_if = "CombinationOp::is_default")]
     pub combination: CombinationOp,
@@ -90,7 +127,7 @@ pub struct SdfScene {
 ```
 
 
-#### `SceneInfo` (line 349)
+#### `SceneInfo` (line 421)
 
 ```rust
 pub struct SceneInfo {
@@ -102,7 +139,7 @@ pub struct SceneInfo {
 
 Summary information about a scene.
 
-#### `SceneInfo` (line 349)
+#### `SceneInfo` (line 421)
 
 ```rust
 pub struct SceneInfo {
@@ -113,7 +150,7 @@ pub struct SceneInfo {
 ```
 
 
-#### `SdfShape` (line 434)
+#### `SdfShape` (line 508)
 
 ```rust
 pub struct SdfShape {
@@ -134,7 +171,7 @@ pub struct SdfShape {
 ```
 
 
-#### `ShapeTransform` (line 468)
+#### `ShapeTransform` (line 542)
 
 ```rust
 pub struct ShapeTransform {
@@ -148,7 +185,7 @@ pub struct ShapeTransform {
 ```
 
 
-#### `ShapeMaterial` (line 492)
+#### `ShapeMaterial` (line 566)
 
 ```rust
 pub struct ShapeMaterial {
@@ -184,7 +221,30 @@ pub struct ShapeMaterial {
 
 ### Enums
 
-#### `SdfPrimitive` (line 451)
+#### `ColliderApprox` (line 37)
+
+```rust
+pub enum ColliderApprox {
+    Sphere { radius: f32 },
+    Capsule { radius: f32, half_height: f32 },
+    Box { half_extents: [f32; 3] },
+}
+```
+
+Simple collider shape for physics approximation (no Bevy dependency).
+
+#### `ColliderApprox` (line 37)
+
+```rust
+pub enum ColliderApprox {
+    Sphere { radius: f32 },
+    Capsule { radius: f32, half_height: f32 },
+    Box { half_extents: [f32; 3] },
+}
+```
+
+
+#### `SdfPrimitive` (line 525)
 
 ```rust
 pub enum SdfPrimitive {
@@ -205,7 +265,7 @@ pub enum SdfPrimitive {
 ```
 
 
-#### `CombinationOp` (line 546)
+#### `CombinationOp` (line 620)
 
 ```rust
 pub enum CombinationOp {
@@ -221,7 +281,7 @@ pub enum CombinationOp {
 ```
 
 
-#### `ShapeModifier` (line 566)
+#### `ShapeModifier` (line 640)
 
 ```rust
 pub enum ShapeModifier {
@@ -251,77 +311,91 @@ pub enum ShapeModifier {
 ```
 
 
-#### `root` (line 50)
+#### `is_default` (line 60)
+
+```rust
+    pub fn is_default(&self) -> bool
+```
+
+
+#### `is_default` (line 80)
+
+```rust
+    pub fn is_default(&self) -> bool
+```
+
+
+#### `root` (line 102)
 
 ```rust
     pub fn root() -> Self
 ```
 
 
-#### `new` (line 61)
+#### `new` (line 114)
 
 ```rust
     pub fn new(name: impl Into<String>) -> Self
 ```
 
 
-#### `find_bone` (line 72)
+#### `find_bone` (line 126)
 
 ```rust
     pub fn find_bone(&self, id: BoneId) -> Option<&SdfBone>
 ```
 
 
-#### `find_bone_mut` (line 80)
+#### `find_bone_mut` (line 134)
 
 ```rust
     pub fn find_bone_mut(&mut self, id: BoneId) -> Option<&mut SdfBone>
 ```
 
 
-#### `find_shape` (line 88)
+#### `find_shape` (line 142)
 
 ```rust
     pub fn find_shape(&self, id: ShapeId) -> Option<(&SdfShape, BoneId)>
 ```
 
 
-#### `find_shape_mut` (line 98)
+#### `find_shape_mut` (line 152)
 
 ```rust
     pub fn find_shape_mut(&mut self, id: ShapeId) -> Option<(&mut SdfShape, BoneId)>
 ```
 
 
-#### `find_shape_by_name` (line 109)
+#### `find_shape_by_name` (line 163)
 
 ```rust
     pub fn find_shape_by_name(&self, name: &str) -> Option<(&SdfShape, BoneId)>
 ```
 
 
-#### `all_shapes` (line 119)
+#### `all_shapes` (line 173)
 
 ```rust
     pub fn all_shapes(&self) -> Vec<(&SdfShape, BoneId)>
 ```
 
 
-#### `remove_shape` (line 130)
+#### `remove_shape` (line 184)
 
 ```rust
     pub fn remove_shape(&mut self, id: ShapeId) -> bool
 ```
 
 
-#### `remove_bone` (line 140)
+#### `remove_bone` (line 194)
 
 ```rust
     pub fn remove_bone(&mut self, id: BoneId) -> bool
 ```
 
 
-#### `duplicate_deep` (line 154)
+#### `duplicate_deep` (line 208)
 
 ```rust
     pub fn duplicate_deep(&self) -> Self
@@ -329,14 +403,14 @@ pub enum ShapeModifier {
 
 Deep clone with fresh UUIDs for this bone, all children, and all shapes.
 
-#### `duplicate_deep` (line 154)
+#### `duplicate_deep` (line 208)
 
 ```rust
     pub fn duplicate_deep(&self) -> Self
 ```
 
 
-#### `restore_names` (line 175)
+#### `restore_names` (line 230)
 
 ```rust
     fn restore_names(&mut self, original: &SdfBone)
@@ -344,21 +418,21 @@ Deep clone with fresh UUIDs for this bone, all children, and all shapes.
 
 Restore original names after duplicate_deep (only top-level gets " Copy").
 
-#### `find_bone_by_name` (line 185)
+#### `find_bone_by_name` (line 240)
 
 ```rust
     pub fn find_bone_by_name(&self, name: &str) -> Option<&SdfBone>
 ```
 
 
-#### `find_bone_by_name_mut` (line 193)
+#### `find_bone_by_name_mut` (line 248)
 
 ```rust
     pub fn find_bone_by_name_mut(&mut self, name: &str) -> Option<&mut SdfBone>
 ```
 
 
-#### `reparent_shape` (line 202)
+#### `reparent_shape` (line 257)
 
 ```rust
     pub fn reparent_shape(&mut self, shape_id: ShapeId, target_bone_id: BoneId) -> bool
@@ -366,21 +440,21 @@ Restore original names after duplicate_deep (only top-level gets " Copy").
 
 Remove a shape from anywhere in the tree and add it to the target bone.
 
-#### `reparent_shape` (line 202)
+#### `reparent_shape` (line 257)
 
 ```rust
     pub fn reparent_shape(&mut self, shape_id: ShapeId, target_bone_id: BoneId) -> bool
 ```
 
 
-#### `extract_shape` (line 212)
+#### `extract_shape` (line 267)
 
 ```rust
     pub fn extract_shape(&mut self, id: ShapeId) -> Option<SdfShape>
 ```
 
 
-#### `reparent_bone` (line 224)
+#### `reparent_bone` (line 279)
 
 ```rust
     pub fn reparent_bone(&mut self, bone_id: BoneId, target_bone_id: BoneId) -> bool
@@ -389,21 +463,21 @@ Remove a shape from anywhere in the tree and add it to the target bone.
 Remove a bone from anywhere in the tree and add it as a child of target.
 Returns false if bone_id == target or target is a descendant of bone_id (cycle).
 
-#### `reparent_bone` (line 224)
+#### `reparent_bone` (line 279)
 
 ```rust
     pub fn reparent_bone(&mut self, bone_id: BoneId, target_bone_id: BoneId) -> bool
 ```
 
 
-#### `extract_bone` (line 236)
+#### `extract_bone` (line 291)
 
 ```rust
     pub fn extract_bone(&mut self, id: BoneId) -> Option<SdfBone>
 ```
 
 
-#### `bone_count` (line 247)
+#### `bone_count` (line 302)
 
 ```rust
     pub fn bone_count(&self) -> usize
@@ -411,14 +485,14 @@ Returns false if bone_id == target or target is a descendant of bone_id (cycle).
 
 Count all descendant bones (not including self).
 
-#### `bone_count` (line 247)
+#### `bone_count` (line 302)
 
 ```rust
     pub fn bone_count(&self) -> usize
 ```
 
 
-#### `shape_count` (line 252)
+#### `shape_count` (line 307)
 
 ```rust
     pub fn shape_count(&self) -> usize
@@ -426,28 +500,43 @@ Count all descendant bones (not including self).
 
 Count all shapes in this bone and all descendants.
 
-#### `shape_count` (line 252)
+#### `shape_count` (line 307)
 
 ```rust
     pub fn shape_count(&self) -> usize
 ```
 
 
-#### `reset_transform` (line 256)
+#### `has_physics_bones` (line 312)
+
+```rust
+    pub fn has_physics_bones(bone: &SdfBone) -> bool
+```
+
+Check if any bone in this subtree has physics mass > 0.
+
+#### `has_physics_bones` (line 312)
+
+```rust
+    pub fn has_physics_bones(bone: &SdfBone) -> bool
+```
+
+
+#### `reset_transform` (line 317)
 
 ```rust
     pub fn reset_transform(&mut self)
 ```
 
 
-#### `is_default` (line 327)
+#### `is_default` (line 397)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `new` (line 363)
+#### `new` (line 435)
 
 ```rust
     pub fn new(name: impl Into<String>) -> Self
@@ -455,21 +544,21 @@ Count all shapes in this bone and all descendants.
 
 Create an empty scene with a root bone and default light.
 
-#### `new` (line 363)
+#### `new` (line 435)
 
 ```rust
     pub fn new(name: impl Into<String>) -> Self
 ```
 
 
-#### `info` (line 373)
+#### `info` (line 446)
 
 ```rust
     pub fn info(&self) -> SceneInfo
 ```
 
 
-#### `tree_string` (line 382)
+#### `tree_string` (line 455)
 
 ```rust
     pub fn tree_string(&self) -> String
@@ -477,84 +566,84 @@ Create an empty scene with a root bone and default light.
 
 ASCII tree representation of the scene hierarchy.
 
-#### `tree_string` (line 382)
+#### `tree_string` (line 455)
 
 ```rust
     pub fn tree_string(&self) -> String
 ```
 
 
-#### `default_scene` (line 415)
+#### `default_scene` (line 488)
 
 ```rust
     pub fn default_scene() -> Self
 ```
 
 
-#### `is_default` (line 478)
+#### `is_default` (line 552)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `is_default` (line 522)
+#### `is_default` (line 596)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `is_default` (line 562)
+#### `is_default` (line 636)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `duplicate` (line 576)
+#### `duplicate` (line 650)
 
 ```rust
     pub fn duplicate(&self) -> Self
 ```
 
 
-#### `reset_transform` (line 583)
+#### `reset_transform` (line 657)
 
 ```rust
     pub fn reset_transform(&mut self)
 ```
 
 
-#### `clear_modifiers` (line 587)
+#### `clear_modifiers` (line 661)
 
 ```rust
     pub fn clear_modifiers(&mut self)
 ```
 
 
-#### `default_sphere` (line 591)
+#### `default_sphere` (line 665)
 
 ```rust
     pub fn default_sphere() -> Self
 ```
 
 
-#### `new` (line 604)
+#### `new` (line 678)
 
 ```rust
     pub fn new(name: impl Into<String>, primitive: SdfPrimitive) -> Self
 ```
 
 
-#### `label` (line 619)
+#### `label` (line 693)
 
 ```rust
     pub fn label(&self) -> &'static str
 ```
 
 
-#### `default_for` (line 637)
+#### `default_for` (line 711)
 
 ```rust
     pub fn default_for(name: &str) -> Self
@@ -865,7 +954,7 @@ use crate::models::SdfScene;
 
 ### Structs
 
-#### `SdfRenderPlugin` (line 10)
+#### `SdfRenderPlugin` (line 11)
 
 ```rust
 pub struct SdfRenderPlugin;
@@ -973,7 +1062,51 @@ pub const MAX_SHAPES: usize = 32;
 
 ### Structs
 
-#### `SdfSceneState` (line 9)
+#### `BonePhysicsReading` (line 10)
+
+```rust
+pub struct BonePhysicsReading {
+    pub position: [f32; 3],
+    pub linear_velocity: [f32; 3],
+    pub angular_velocity: [f32; 3],
+}
+```
+
+Physics state readable by node graphs (no Bevy types).
+
+#### `BonePhysicsReading` (line 10)
+
+```rust
+pub struct BonePhysicsReading {
+    pub position: [f32; 3],
+    pub linear_velocity: [f32; 3],
+    pub angular_velocity: [f32; 3],
+}
+```
+
+
+#### `BoneForceOutputs` (line 18)
+
+```rust
+pub struct BoneForceOutputs {
+    pub force: [f32; 3],
+    pub torque: [f32; 3],
+}
+```
+
+Force/torque outputs from node graphs to apply to Avian entities.
+
+#### `BoneForceOutputs` (line 18)
+
+```rust
+pub struct BoneForceOutputs {
+    pub force: [f32; 3],
+    pub torque: [f32; 3],
+}
+```
+
+
+#### `SdfSceneState` (line 24)
 
 ```rust
 pub struct SdfSceneState {
@@ -983,11 +1116,15 @@ pub struct SdfSceneState {
     pub show_bone_gizmos: bool,
     pub dirty: bool,
     pub topology_hash: u64,
+    pub use_avian: bool,
+    pub physics_paused: bool,
+    pub physics_readings: HashMap<BoneId, BonePhysicsReading>,
+    pub force_outputs: HashMap<BoneId, BoneForceOutputs>,
 }
 ```
 
 
-#### `SdfBoundingEntity` (line 32)
+#### `SdfBoundingEntity` (line 55)
 
 ```rust
 pub struct SdfBoundingEntity;
@@ -996,7 +1133,7 @@ pub struct SdfBoundingEntity;
 
 ### Functions
 
-#### `setup_initial_scene` (line 34)
+#### `setup_initial_scene` (line 57)
 
 ```rust
 pub fn setup_initial_scene(
@@ -1008,7 +1145,7 @@ pub fn setup_initial_scene(
 ```
 
 
-#### `sync_scene_to_shader` (line 48)
+#### `sync_scene_to_shader` (line 71)
 
 ```rust
 pub fn sync_scene_to_shader(
@@ -1020,7 +1157,7 @@ pub fn sync_scene_to_shader(
 ```
 
 
-#### `build_shader_params` (line 76)
+#### `build_shader_params` (line 99)
 
 ```rust
 pub fn build_shader_params(scene_data: &SdfScene) -> SdfShaderParams
@@ -1689,7 +1826,7 @@ pub struct SdfEditorPlugin;
 
 ### Structs
 
-#### `EditorUi` (line 34)
+#### `EditorUi` (line 35)
 
 ```rust
 pub struct EditorUi {
@@ -1699,7 +1836,7 @@ pub struct EditorUi {
     pub(crate) prev_on_apply_yaml: u32,
     pub(crate) prev_on_confirm_add: u32,
     pub(crate) prev_on_reset_transform: u32,
-    pub(crate) prev_on_clear_modifiers: u32,
+
     pub(crate) prev_on_confirm_save: u32,
     pub(crate) prev_pick_file_counts: Vec<u32>,
     pub(crate) file_browser_save_mode: bool,
@@ -1716,11 +1853,20 @@ pub struct EditorUi {
     pub(crate) graph_undo_stack: Vec<(ShapeId, Snarl<SdfNode>)>,
     pub(crate) rename_state: Option<(tree::RenameTarget, String)>,
     pub(crate) clipboard: Option<litsdf_core::models::SdfShape>,
+    // Animation / physics playback
+    pub(crate) animation_time: f32,
+    pub(crate) animation_playing: bool,
+    pub(crate) animation_enabled: bool,
+    pub(crate) physics_enabled: bool,
+    pub(crate) rest_pose: Option<litsdf_core::models::SdfBone>,
+    pub(crate) physics_states: HashMap<BoneId, litsdf_core::physics::BonePhysicsState>,
+    pub(crate) show_help: bool,
+    pub(crate) show_description: bool,
 }
 ```
 
 
-#### `TreePanelActions` (line 90)
+#### `TreePanelActions` (line 108)
 
 ```rust
 struct TreePanelActions {
@@ -1738,7 +1884,7 @@ Actions collected from the left panel to apply after rendering.
 
 ### Functions
 
-#### `editor_ui` (line 104)
+#### `editor_ui` (line 122)
 
 ```rust
 pub fn editor_ui(
@@ -1764,28 +1910,28 @@ use crate::nodes::{SdfNode, SdfNodeViewer};
 
 ### Functions
 
-#### `populate_bone_shapes` (line 37)
+#### `populate_bone_shapes` (line 11)
 
 ```rust
 pub fn populate_bone_shapes(ui: &mut EditorUi, scene: &SdfSceneState)
 ```
 
 
-#### `populate_shape_properties` (line 60)
+#### `populate_shape_properties` (line 34)
 
 ```rust
 pub fn populate_shape_properties(ui: &mut EditorUi, scene: &SdfSceneState)
 ```
 
 
-#### `populate_bone_properties` (line 123)
+#### `populate_bone_properties` (line 85)
 
 ```rust
 pub fn populate_bone_properties(ui: &mut EditorUi, scene: &SdfSceneState)
 ```
 
 
-#### `populate_file_browser` (line 147)
+#### `populate_file_browser` (line 111)
 
 ```rust
 pub fn populate_file_browser(ui: &mut EditorUi)
@@ -1803,7 +1949,7 @@ pub fn sync_shape_properties(ui: &mut EditorUi, scene: &mut SdfSceneState)
 ```
 
 
-#### `sync_bone_properties` (line 142)
+#### `sync_bone_properties` (line 118)
 
 ```rust
 pub fn sync_bone_properties(ui: &mut EditorUi, scene: &mut SdfSceneState)
@@ -1856,21 +2002,14 @@ pub fn handle_reset_transform(ui: &mut EditorUi, scene: &mut SdfSceneState)
 ```
 
 
-#### `handle_clear_modifiers` (line 100)
-
-```rust
-pub fn handle_clear_modifiers(ui: &mut EditorUi, scene: &mut SdfSceneState)
-```
-
-
-#### `handle_save_load` (line 113)
+#### `handle_save_load` (line 100)
 
 ```rust
 pub fn handle_save_load(_ui: &mut EditorUi)
 ```
 
 
-#### `handle_file_browser` (line 117)
+#### `handle_file_browser` (line 104)
 
 ```rust
 pub fn handle_file_browser(ui: &mut EditorUi, scene: &mut SdfSceneState)
@@ -1940,7 +2079,7 @@ pub const PRIM_NAMES: &[&str] = &[
 
 ### Structs
 
-#### `TreeResult` (line 43)
+#### `TreeResult` (line 44)
 
 ```rust
 pub struct TreeResult {
@@ -2035,6 +2174,7 @@ pub enum ContextAction {
     ReparentShape { shape: ShapeId, new_bone: BoneId },
     RenameBone(BoneId, String),
     RenameShape(ShapeId, String),
+    ToggleBonePhysics(BoneId),
 }
 ```
 
@@ -2058,13 +2198,14 @@ pub enum ContextAction {
     ReparentShape { shape: ShapeId, new_bone: BoneId },
     RenameBone(BoneId, String),
     RenameShape(ShapeId, String),
+    ToggleBonePhysics(BoneId),
 }
 ```
 
 
 ### Functions
 
-#### `collect_bone_list` (line 49)
+#### `collect_bone_list` (line 50)
 
 ```rust
 fn collect_bone_list(bone: &SdfBone, out: &mut Vec<(BoneId, String)>)
@@ -2072,7 +2213,7 @@ fn collect_bone_list(bone: &SdfBone, out: &mut Vec<(BoneId, String)>)
 
 Flat list of (BoneId, name) for reparent submenus.
 
-#### `render_bone_tree` (line 57)
+#### `render_bone_tree` (line 58)
 
 ```rust
 pub fn render_bone_tree(
@@ -2086,7 +2227,7 @@ pub fn render_bone_tree(
 
 Renders the bone tree recursively using egui CollapsingHeader.
 
-#### `render_bone_tree` (line 57)
+#### `render_bone_tree` (line 58)
 
 ```rust
 pub fn render_bone_tree(
@@ -2276,16 +2417,16 @@ Stratification = (outgoing + 1) / (incoming + 1). Low = foundational, high = lea
 
 | Module | Out | In | Strat | Role |
 |--------|-----|-----|-------|------|
-| `core::models` | 0 | 28 | 0.03 | foundation |
+| `core::models` | 0 | 34 | 0.03 | foundation |
 | `render::camera` | 0 | 3 | 0.25 | foundation |
-| `core::scene` | 1 | 4 | 0.40 | foundation |
-| `render::scene_sync` | 3 | 8 | 0.44 | foundation |
+| `core::scene` | 1 | 5 | 0.33 | foundation |
+| `render::scene_sync` | 3 | 11 | 0.33 | foundation |
 | `render::shader` | 0 | 1 | 0.50 | core |
 | `core::persistence` | 1 | 2 | 0.67 | core |
 | `core::lib` | 0 | 0 | 1.00 | core |
+| `core::physics` | 1 | 1 | 1.00 | core |
 | `render::lib` | 0 | 0 | 1.00 | core |
 | `editor::lib` | 0 | 0 | 1.00 | core |
-| `editor::nodes::eval` | 0 | 0 | 1.00 | core |
 | `editor::nodes::mod` | 0 | 0 | 1.00 | core |
 | `editor::nodes::presets` | 0 | 0 | 1.00 | core |
 | `editor::nodes::types` | 0 | 0 | 1.00 | core |
@@ -2294,13 +2435,21 @@ Stratification = (outgoing + 1) / (incoming + 1). Low = foundational, high = lea
 | `core::sdf` | 1 | 0 | 2.00 | connector |
 | `editor::demos::abstract_sculpture` | 1 | 0 | 2.00 | connector |
 | `editor::demos::boolean_sampler` | 1 | 0 | 2.00 | connector |
+| `editor::demos::damping_lab` | 1 | 0 | 2.00 | connector |
+| `editor::demos::hanging_chain` | 1 | 0 | 2.00 | connector |
 | `editor::demos::mod` | 1 | 0 | 2.00 | connector |
 | `editor::demos::modifier_parade` | 1 | 0 | 2.00 | connector |
 | `editor::demos::mushroom_garden` | 1 | 0 | 2.00 | connector |
+| `editor::demos::pendulum` | 1 | 0 | 2.00 | connector |
 | `editor::demos::primitive_gallery` | 1 | 0 | 2.00 | connector |
 | `editor::demos::robot_friend` | 1 | 0 | 2.00 | connector |
+| `editor::demos::speed_glow` | 1 | 0 | 2.00 | connector |
+| `editor::demos::wave_force` | 1 | 0 | 2.00 | connector |
+| `editor::nodes::eval` | 1 | 0 | 2.00 | connector |
 | `editor::project` | 1 | 0 | 2.00 | connector |
 | `editor::ui::helpers` | 1 | 0 | 2.00 | connector |
+| `editor::ui::populate` | 1 | 0 | 2.00 | connector |
+| `editor::ui::sync` | 1 | 0 | 2.00 | connector |
 | `editor::ui::tree` | 1 | 0 | 2.00 | connector |
 | `cli::commands::bone` | 1 | 0 | 2.00 | connector |
 | `cli::commands::modifier` | 1 | 0 | 2.00 | connector |
@@ -2309,11 +2458,11 @@ Stratification = (outgoing + 1) / (incoming + 1). Low = foundational, high = lea
 | `render::codegen` | 2 | 0 | 3.00 | leaf |
 | `editor::testing` | 2 | 0 | 3.00 | leaf |
 | `editor::ui::handlers` | 2 | 0 | 3.00 | leaf |
-| `editor::ui::populate` | 2 | 0 | 3.00 | leaf |
-| `editor::ui::sync` | 2 | 0 | 3.00 | leaf |
+| `editor::ui::modifier_stack` | 2 | 0 | 3.00 | leaf |
 | `editor::undo` | 2 | 0 | 3.00 | leaf |
 | `cli::commands::mod` | 2 | 0 | 3.00 | leaf |
 | `cli::commands::scene` | 2 | 0 | 3.00 | leaf |
+| `render::avian_physics` | 4 | 0 | 5.00 | leaf |
 | `render::gizmos` | 4 | 0 | 5.00 | leaf |
 | `editor::ui::mod` | 4 | 0 | 5.00 | leaf |
 

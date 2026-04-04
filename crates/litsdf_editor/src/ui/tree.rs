@@ -38,6 +38,7 @@ pub enum ContextAction {
     ReparentShape { shape: ShapeId, new_bone: BoneId },
     RenameBone(BoneId, String),
     RenameShape(ShapeId, String),
+    ToggleBonePhysics(BoneId),
 }
 
 pub struct TreeResult {
@@ -81,10 +82,11 @@ fn render_bone_recursive(
     result: &mut TreeResult,
 ) {
     let bone_selected = selected_bone == Some(bone.id);
+    let physics_icon = if bone.physics.mass > 0.0 { " ●" } else { "" };
     let bone_label = if bone_selected {
-        format!("▸ {}", bone.name)
+        format!("▸ {}{}", bone.name, physics_icon)
     } else {
-        bone.name.clone()
+        format!("{}{}", bone.name, physics_icon)
     };
 
     let id = ui.make_persistent_id(bone.id.0);
@@ -178,6 +180,12 @@ fn render_bone_recursive(
                             }
                         }
                     });
+                    ui.separator();
+                    let physics_label = if bone.physics.mass > 0.0 { "Disable Physics" } else { "Enable Physics" };
+                    if ui.button(physics_label).clicked() {
+                        result.context = ContextAction::ToggleBonePhysics(bone.id);
+                        ui.close();
+                    }
                     ui.separator();
                     if ui.button("Delete").clicked() {
                         result.context = ContextAction::DeleteBone(bone.id);

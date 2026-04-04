@@ -139,19 +139,19 @@ mod tests {
     fn presets_produce_expected_values() {
         // Bob at t=0.25: amp * sin(0.25 * freq * TAU) = 0.3 * sin(0.25 * 0.5 * TAU) = 0.3 * sin(PI/4) ≈ 0.212
         let bob = bob_preset(0.3, 0.5);
-        let result = evaluate_graph(&bob, 0.25);
+        let result = evaluate_graph(&bob, 0.25, None);
         assert!(result.ty.is_some());
         let ty = result.ty.unwrap();
         assert!((ty - 0.3 * (0.25_f32 * 0.5 * std::f32::consts::TAU).sin()).abs() < 0.001);
 
         // Pulse at t=0: scale should be 1.0 (base) + 0.0 (sin(0)) = 1.0
         let pulse = pulse_preset(0.1, 1.0);
-        let result = evaluate_graph(&pulse, 0.0);
+        let result = evaluate_graph(&pulse, 0.0, None);
         assert!((result.scale.unwrap() - 1.0).abs() < 0.001);
 
         // Spin: ry = time * speed
         let spin = spin_preset(90.0);
-        let result = evaluate_graph(&spin, 2.0);
+        let result = evaluate_graph(&spin, 2.0, None);
         assert!((result.ry.unwrap() - 180.0).abs() < 0.001);
     }
 }

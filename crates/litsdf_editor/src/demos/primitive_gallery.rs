@@ -37,6 +37,7 @@ pub fn create() -> DemoResult {
     DemoResult {
         scene: SdfScene {
             name: "Primitive Gallery".into(),
+            description: "All 13 SDF primitives arranged in a circle. Select any shape to inspect its type and parameters.".into(),
             root_bone: root,
             combination: CombinationOp::Union,
             light_dir: [0.6, 0.8, 0.4],

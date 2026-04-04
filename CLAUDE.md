@@ -5,7 +5,7 @@
 litsdf is a Cargo workspace with four crates:
 
 - **`litsdf_core`** — Data model, SDF math, scene computation, persistence. **No Bevy dependency.** Uses glam 0.30 directly (same version Bevy uses, so types are compatible).
-- **`litsdf_render`** — Bevy rendering plugin. Material, camera, gizmos, picking, scene sync. Depends on core + Bevy.
+- **`litsdf_render`** — Bevy rendering plugin. Material, camera, gizmos, picking, scene sync, Avian3D physics. Depends on core + Bevy + avian3d.
 - **`litsdf_editor`** — Editor UI plugin. litui panels, undo, testing, node editor. Depends on core + render + litui + egui-snarl.
 - **`litsdf_cli`** — Command-line tool for manipulating scene YAML files. Depends on core + clap. **No Bevy/GPU dependency.**
 
@@ -43,7 +43,7 @@ The generated `knowledge/api/API.md` covers all four crates with full type defin
 - `knowledge/node-architecture.md` — Node editor architecture design document
 - `knowledge/shader-codegen.md` — Per-pixel shader code generation research
 - `knowledge/pbr-lighting.md` — PBR (Cook-Torrance) lighting upgrade research
-- `knowledge/demo-scenes.md` — 6 demo scenes, feature coverage, loading instructions
+- `knowledge/demo-scenes.md` — 9 demo scenes (6 visual + 3 physics), feature coverage, loading instructions
 - `knowledge/litui-feature-request.md` — litui numeric config features (all 5 implemented)
 - `knowledge/pbr-lighting.md` also covers gradient sky environment upgrade
 
@@ -53,7 +53,7 @@ The generated `knowledge/api/API.md` covers all four crates with full type defin
 cargo run --bin litsdf                       # editor
 cargo run --bin litsdf-viewer -- scene.yaml  # viewer
 cargo run -p litsdf-cli -- scene info s.yaml # CLI
-cargo test --workspace                       # 68 tests
+cargo test --workspace                       # 76 tests
 LITSDF_SCREENSHOT=path.png cargo run --bin litsdf  # screenshot
 ```
 
@@ -78,3 +78,12 @@ LITSDF_SCREENSHOT=path.png cargo run --bin litsdf  # screenshot
 - Shader codegen writes to `assets/shaders/sdf_raymarch.wgsl` (runtime copy, gitignored) on topology change — Bevy hot-reloads automatically. Source shader + preamble/postamble live in `crates/litsdf_render/assets/shaders/` (committed). On startup, `ensure_runtime_shader()` copies the fallback loop-based shader to the runtime location.
 - Lighting uses Cook-Torrance PBR (GGX + Fresnel-Schlick + Smith geometry), NOT Blinn-Phong
 - Shader supports orthographic projection — detects via `view.clip_from_view[3][3]` and switches to parallel rays. Toggle with key 5.
+- Physics uses Avian3D 0.5 (Bevy 0.18 compatible) via shadow entity layer in `avian_physics.rs`. Bones with mass>0 are Dynamic RigidBody, mass==0 are Kinematic (animation-driven), root is Static.
+- Avian runs in `FixedPostUpdate` — sync systems (kinematic→avian, avian→bones, collect_readings) must also run in `FixedPostUpdate`. Spawn/pause systems run in `Update`.
+- `DistanceJoint` (NOT SphericalJoint) connects parent-child bones — SphericalJoint with zero compliance locks dynamic bodies when connected to kinematic parents.
+- Dynamic bodies need `SleepingDisabled` to prevent premature sleep. Spawn with `Transform` (not Position/Rotation).
+- `BonePhysicsProps` (mass, damping, rotation_limits) lives in `litsdf_core` (no Bevy dep). `ColliderApprox` maps SDF shapes to simple colliders.
+- `physics_paused` on `SdfSceneState` gates Avian's `Time<Physics>`. Editor sets it from `!physics_enabled`.
+- `BonePhysicsReading` (position, velocity) flows Avian→node graphs. `BoneForceOutputs` flows node graphs→Avian.
+- `BoneOutput` has 13 pins (7 transform + 3 force + 3 torque). 4 physics input nodes: BoneVelocity, BoneAngularVelocity, BoneWorldPosition, BoneSpeed.
+- Custom physics solver (`physics.rs`) remains as fallback when `use_avian = false`.

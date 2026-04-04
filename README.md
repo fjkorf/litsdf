@@ -18,6 +18,11 @@ Six built-in demo scenes accessible via **File > Demo Scenes**:
 | **Mushroom Garden** | Cosine Palette, Cellular, Ridged, Gradient Snow color modes, noise displacement |
 | **Robot Friend** | Metallic materials, Fresnel, ChamferUnion, node-driven bone animation |
 | **Abstract Sculpture** | SmoothIntersection, Twist modifier, color cycling animation, custom scene settings |
+| **Hanging Chain** | Bone physics: 5-link chain falling under Avian3D gravity |
+| **Pendulum** | Animation + physics blending: animated arm with physics weight |
+| **Damping Lab** | Three chains comparing damping values (0.998, 0.99, 0.95) |
+| **Speed Glow** | Physics→node: pendulum ball color shifts with BoneSpeed |
+| **Wave Force** | Node→physics: oscillating force drives sphere via BoneOutput Force Y |
 
 ## Features
 
@@ -30,12 +35,23 @@ Six built-in demo scenes accessible via **File > Demo Scenes**:
 - **Shader codegen** — scene topology compiles to unrolled WGSL, hot-reloaded by Bevy
 
 ### Node Editor
-- **24 node types** — oscillators (sin, square, triangle, sawtooth), math (add, multiply, mix, clamp, abs, modulo, ease, remap), animation (exponential impulse, smoothstep, noise 1D), cosine palette, vec3 ops
+- **25 node types** — oscillators (sin, square, triangle, sawtooth), math (add, multiply, mix, clamp, abs, modulo, ease, remap), animation (exponential impulse, smoothstep, noise 1D), cosine palette, vec3 ops, physics inputs
 - **27-pin ShapeOutput** — drives position, rotation, scale, color, material, noise, and all modifier params
-- **7-pin BoneOutput** — drives bone transforms
+- **13-pin BoneOutput** — drives bone transforms + physics forces/torques
+- **4 physics input nodes** — BoneVelocity, BoneAngularVelocity, BoneWorldPosition, BoneSpeed
 - **Graph persistence** — ProjectFile saves scene + node graphs in single YAML
 - **7 presets** — bob, spin, pulse, orbit, color cycle + bone variants
 - **Color-coded nodes** by category
+
+### Physics
+- **Avian3D integration** — Shadow entity layer mirrors bone hierarchy as Bevy physics entities
+- **Per-bone physics** — mass, damping, rotation limits (serialized in YAML)
+- **Scene gravity** — configurable in properties panel (default -9.81)
+- **Ground plane** — optional static collision surface
+- **Collider approximation** — SDF shapes auto-mapped to sphere/capsule/box colliders
+- **Joint constraints** — DistanceJoint between parent-child bones for pendulum-like swinging
+- **Play/pause/reset** — Space to toggle, managed animation clock, rest pose snapshot
+- **Blending** — kinematic bones (mass=0) driven by animation, dynamic bones (mass>0) driven by physics
 
 ### Editor
 - **Menu bar** — File, Edit, Add, View with keyboard shortcut hints
@@ -47,6 +63,8 @@ Six built-in demo scenes accessible via **File > Demo Scenes**:
 - **Camera views** — 1 (front), 3 (right), 7 (top), 5 (toggle perspective/orthographic)
 - **Copy/paste** — Cmd+C/V for shapes
 - **Render sequence** — export numbered PNGs for video assembly
+- **Help overlay** — press ? for keyboard shortcut reference
+- **Scene descriptions** — popup on demo/file load explaining featured concepts
 
 ### CLI
 - **25 subcommands** across scene, bone, shape, and modifier operations
@@ -58,7 +76,7 @@ Six built-in demo scenes accessible via **File > Demo Scenes**:
 cargo run --bin litsdf                                      # editor
 cargo run --bin litsdf-viewer -- scene.yaml                 # viewer
 cargo run -p litsdf-cli -- scene info scene.yaml            # CLI
-cargo test --workspace                                      # 66 tests
+cargo test --workspace                                      # 76+ tests
 LITSDF_SCREENSHOT=out.png cargo run --bin litsdf            # screenshot
 LITSDF_RENDER_SEQUENCE=frames,60,30 cargo run --bin litsdf  # render 60 frames
 ```
@@ -70,16 +88,17 @@ LITSDF_RENDER_SEQUENCE=frames,60,30 cargo run --bin litsdf  # render 60 frames
 | Crate | Purpose | Dependencies |
 |-------|---------|-------------|
 | `litsdf_core` | Data model, SDF math, persistence | glam, serde |
-| `litsdf_render` | Bevy rendering, shader codegen | core, Bevy |
+| `litsdf_render` | Bevy rendering, shader codegen, Avian physics | core, Bevy, avian3d |
 | `litsdf_editor` | UI, node editor, project files | core, render, egui-snarl, litui |
 | `litsdf_cli` | Command-line scene manipulation | core, clap |
 
-See `knowledge/` for 20 detailed documentation files and `knowledge/api/API.md` for auto-generated API reference (179 items).
+See `knowledge/` for detailed documentation files and `knowledge/api/API.md` for auto-generated API reference (179 items).
 
 ## Dependencies
 
 - [Bevy](https://bevyengine.org/) 0.18
 - [egui](https://github.com/emilk/egui) 0.33 + [bevy_egui](https://github.com/vladbat00/bevy_egui) 0.39
 - [egui-snarl](https://github.com/zakarumych/egui-snarl) 0.9
+- [avian3d](https://github.com/avianphysics/avian) 0.5
 - [litui](https://github.com/fjkorf/litui)
 - [clap](https://github.com/clap-rs/clap) 4

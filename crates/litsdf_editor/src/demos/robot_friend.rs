@@ -107,6 +107,7 @@ pub fn create() -> DemoResult {
     DemoResult {
         scene: SdfScene {
             name: "Robot Friend".into(),
+            description: "An articulated robot with animated arms driven by bone node graphs. Open View > Node Editor to see the animation graphs.".into(),
             root_bone: root,
             combination: CombinationOp::Union,
             light_dir: [0.5, 0.8, 0.5],

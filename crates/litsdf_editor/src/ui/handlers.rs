@@ -97,19 +97,6 @@ pub fn handle_reset_transform(ui: &mut EditorUi, scene: &mut SdfSceneState) {
     ui.prev_on_reset_transform = ui.md.state.on_reset_transform_count;
 }
 
-pub fn handle_clear_modifiers(ui: &mut EditorUi, scene: &mut SdfSceneState) {
-    if ui.md.state.on_clear_modifiers_count > ui.prev_on_clear_modifiers {
-        if let Some(sel_id) = scene.selected_shape {
-            if let Some((shape, _)) = scene.scene.root_bone.find_shape_mut(sel_id) {
-                shape.clear_modifiers();
-                scene.dirty = true;
-            }
-        }
-        ui.prev_selected_shape = None;
-    }
-    ui.prev_on_clear_modifiers = ui.md.state.on_clear_modifiers_count;
-}
-
 pub fn handle_save_load(_ui: &mut EditorUi) {
     // Save/Load now triggered via File menu shortcuts (Cmd+S, Cmd+O)
 }
@@ -140,6 +127,7 @@ pub fn handle_file_browser(ui: &mut EditorUi, scene: &mut SdfSceneState) {
                     scene.scene = project.scene;
                     ui.node_graphs = project.shape_graphs;
                     ui.bone_graphs = project.bone_graphs;
+                    ui.show_description = !scene.scene.description.is_empty();
                     scene.selected_shape = None;
                     scene.selected_bone = None;
                     scene.dirty = true;

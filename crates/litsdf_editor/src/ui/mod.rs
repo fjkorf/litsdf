@@ -1,5 +1,6 @@
 mod handlers;
 pub mod helpers;
+mod modifier_stack;
 pub mod populate;
 pub mod shortcuts;
 mod sync;
@@ -38,7 +39,7 @@ pub struct EditorUi {
     pub(crate) prev_on_apply_yaml: u32,
     pub(crate) prev_on_confirm_add: u32,
     pub(crate) prev_on_reset_transform: u32,
-    pub(crate) prev_on_clear_modifiers: u32,
+
     pub(crate) prev_on_confirm_save: u32,
     pub(crate) prev_pick_file_counts: Vec<u32>,
     pub(crate) file_browser_save_mode: bool,
@@ -55,6 +56,15 @@ pub struct EditorUi {
     pub(crate) graph_undo_stack: Vec<(ShapeId, Snarl<SdfNode>)>,
     pub(crate) rename_state: Option<(tree::RenameTarget, String)>,
     pub(crate) clipboard: Option<litsdf_core::models::SdfShape>,
+    // Animation / physics playback
+    pub(crate) animation_time: f32,
+    pub(crate) animation_playing: bool,
+    pub(crate) animation_enabled: bool,
+    pub(crate) physics_enabled: bool,
+    pub(crate) rest_pose: Option<litsdf_core::models::SdfBone>,
+    pub(crate) physics_states: HashMap<BoneId, litsdf_core::physics::BonePhysicsState>,
+    pub(crate) show_help: bool,
+    pub(crate) show_description: bool,
 }
 
 impl Default for EditorUi {
@@ -66,7 +76,7 @@ impl Default for EditorUi {
             prev_on_apply_yaml: 0,
             prev_on_confirm_add: 0,
             prev_on_reset_transform: 0,
-            prev_on_clear_modifiers: 0,
+
             prev_on_confirm_save: 0,
             prev_pick_file_counts: Vec::new(),
             file_browser_save_mode: false,
@@ -81,6 +91,14 @@ impl Default for EditorUi {
             graph_undo_stack: Vec::new(),
             rename_state: None,
             clipboard: None,
+            animation_time: 0.0,
+            animation_playing: false,
+            animation_enabled: true,
+            physics_enabled: true,
+            rest_pose: None,
+            physics_states: HashMap::new(),
+            show_help: false,
+            show_description: false,
         }
     }
 }
@@ -115,6 +133,15 @@ pub fn editor_ui(
         Ok(c) => c.clone(),
         Err(_) => return,
     };
+
+    // ── On first frame, sync animation_playing from scene state ──
+    // (handles LITSDF_DEMO=chain setting physics_paused=false before editor starts)
+    if ui.animation_time == 0.0 && !scene.physics_paused {
+        ui.animation_playing = true;
+        if ui.rest_pose.is_none() {
+            ui.rest_pose = Some(scene.scene.root_bone.clone());
+        }
+    }
 
     // ── Keyboard shortcuts (must be checked every frame, outside menus) ──
     let mut shortcut_action = ShortcutAction::None;
@@ -190,10 +217,22 @@ pub fn editor_ui(
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::P)) {
             *gizmo_mode = litsdf_render::picking::GizmoMode::Repetition;
         }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Space)) {
+            shortcut_action = ShortcutAction::TogglePlayback;
+        }
+        // ? key — check for the character since it's Shift+/ on most layouts
+        let question_pressed = ctx.input(|i| {
+            i.events.iter().any(|e| matches!(e, egui::Event::Text(t) if t == "?"))
+        });
+        if question_pressed {
+            ui.show_help = !ui.show_help;
+        }
     }
 
     // ── Menu bar ──
     let mut ui_show_node_editor = ui.show_node_editor;
+    let mut ui_animation_enabled = ui.animation_enabled;
+    let mut ui_physics_enabled = ui.physics_enabled;
     let mut selected_demo: Option<crate::demos::DemoScene> = None;
     egui::TopBottomPanel::top("menu_bar").show(&ctx, |bar_ui| {
         egui::MenuBar::new().ui(bar_ui, |bar_ui| {
@@ -264,6 +303,9 @@ pub fn editor_ui(
                 }
                 ui.checkbox(&mut ui_show_node_editor, "Node Editor");
                 ui.separator();
+                ui.checkbox(&mut ui_animation_enabled, "Animation");
+                ui.checkbox(&mut ui_physics_enabled, "Physics");
+                ui.separator();
                 if ui.add(egui::Button::new("Frame Selection").shortcut_text("F")).clicked() {
                     shortcut_action = ShortcutAction::FrameSelection;
                     ui.close();
@@ -277,6 +319,8 @@ pub fn editor_ui(
     });
 
     ui.show_node_editor = ui_show_node_editor;
+    ui.animation_enabled = ui_animation_enabled;
+    ui.physics_enabled = ui_physics_enabled;
 
     // ── Status bar ──
     egui::TopBottomPanel::bottom("status_bar").show(&ctx, |bar_ui| {
@@ -296,6 +340,16 @@ pub fn editor_ui(
             }
             bar_ui.separator();
             bar_ui.label(gizmo_mode.label());
+            bar_ui.separator();
+            // Playback controls
+            let play_label = if ui.animation_playing { "||" } else { ">" };
+            if bar_ui.small_button(play_label).clicked() {
+                shortcut_action = ShortcutAction::TogglePlayback;
+            }
+            if bar_ui.small_button("Reset").clicked() {
+                shortcut_action = ShortcutAction::ResetPlayback;
+            }
+            bar_ui.label(format!("{:.1}s", ui.animation_time));
             bar_ui.separator();
             let info = scene.scene.info();
             bar_ui.label(format!("{} bones, {} shapes", info.bone_count, info.shape_count));
@@ -402,6 +456,9 @@ pub fn editor_ui(
             });
     }
 
+    // Detect scene change before name sync overwrites the comparison
+    let settings_need_init = ui.md.state.scene_name != scene.scene.name || ui.md.state.scene_name.is_empty();
+
     // Scene name (bidirectional — always sync)
     if ui.md.state.scene_name != scene.scene.name && !ui.md.state.scene_name.is_empty() {
         scene.scene.name = ui.md.state.scene_name.clone();
@@ -421,27 +478,40 @@ pub fn editor_ui(
     }
 
     // Scene settings (bidirectional)
+    // On scene change (new/load/demo), force-populate UI from model to avoid
+    // the first-frame bug where UI defaults (0.0) overwrite non-zero model values.
     {
         let s = &mut scene.scene.settings;
-        let mut changed = false;
-        macro_rules! sync_setting {
-            ($ui_field:ident, $model_field:expr) => {
-                let ui_val = ui.md.state.$ui_field as f32;
-                if (ui_val - $model_field).abs() > 1e-6 {
-                    $model_field = ui_val;
-                    changed = true;
-                } else {
-                    ui.md.state.$ui_field = $model_field as f64;
-                }
-            };
+        if settings_need_init {
+            ui.md.state.fill_intensity = s.fill_intensity as f64;
+            ui.md.state.back_intensity = s.back_intensity as f64;
+            ui.md.state.sss_intensity = s.sss_intensity as f64;
+            ui.md.state.ao_intensity = s.ao_intensity as f64;
+            ui.md.state.shadow_softness = s.shadow_softness as f64;
+            ui.md.state.vignette_intensity = s.vignette_intensity as f64;
+            ui.md.state.gravity = s.gravity as f64;
+        } else {
+            let mut changed = false;
+            macro_rules! sync_setting {
+                ($ui_field:ident, $model_field:expr) => {
+                    let ui_val = ui.md.state.$ui_field as f32;
+                    if (ui_val - $model_field).abs() > 1e-6 {
+                        $model_field = ui_val;
+                        changed = true;
+                    } else {
+                        ui.md.state.$ui_field = $model_field as f64;
+                    }
+                };
+            }
+            sync_setting!(fill_intensity, s.fill_intensity);
+            sync_setting!(back_intensity, s.back_intensity);
+            sync_setting!(sss_intensity, s.sss_intensity);
+            sync_setting!(ao_intensity, s.ao_intensity);
+            sync_setting!(shadow_softness, s.shadow_softness);
+            sync_setting!(vignette_intensity, s.vignette_intensity);
+            sync_setting!(gravity, s.gravity);
+            if changed { scene.dirty = true; }
         }
-        sync_setting!(fill_intensity, s.fill_intensity);
-        sync_setting!(back_intensity, s.back_intensity);
-        sync_setting!(sss_intensity, s.sss_intensity);
-        sync_setting!(ao_intensity, s.ao_intensity);
-        sync_setting!(shadow_softness, s.shadow_softness);
-        sync_setting!(vignette_intensity, s.vignette_intensity);
-        if changed { scene.dirty = true; }
     }
 
     // Populate litui state for properties + file browser
@@ -453,12 +523,19 @@ pub fn editor_ui(
     // ── Left panel: pure egui bone tree ──
     let tree_actions = render_tree_panel(&ctx, &scene, &mut ui.rename_state);
 
-    // ── Right panel: litui properties ──
+    // ── Right panel: litui properties + egui modifier stack ──
     egui::SidePanel::right("panel_properties")
         .default_width(260.0)
         .show(&ctx, |panel_ui| {
             egui::ScrollArea::vertical().show(panel_ui, |panel_ui| {
                 app::render_properties(panel_ui, &mut ui.md.state);
+                // Modifier stack (pure egui, below litui properties)
+                if scene.selected_shape.is_some() {
+                    panel_ui.separator();
+                    if modifier_stack::render_modifier_stack(panel_ui, &mut scene) {
+                        scene.dirty = true;
+                    }
+                }
             });
         });
 
@@ -498,6 +575,79 @@ pub fn editor_ui(
                 });
             });
         ui.md.state.show_yaml_editor = open;
+    }
+
+    // ── Help overlay ──
+    if ui.show_help {
+        let mut open = true;
+        egui::Window::new("Keyboard Shortcuts")
+            .collapsible(false)
+            .default_width(340.0)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .open(&mut open)
+            .show(&ctx, |wui| {
+                egui::Grid::new("help_grid").num_columns(2).spacing([20.0, 4.0]).show(wui, |gui| {
+                    let shortcuts: &[(&str, &str)] = &[
+                        ("General", ""),
+                        ("Cmd+S", "Save"),
+                        ("Cmd+O", "Open"),
+                        ("Cmd+N", "New Scene"),
+                        ("Cmd+Z", "Undo"),
+                        ("Cmd+Shift+Z", "Redo"),
+                        ("Cmd+D", "Duplicate"),
+                        ("Cmd+C / Cmd+V", "Copy / Paste"),
+                        ("Delete", "Delete selected"),
+                        ("Escape", "Deselect"),
+                        ("?", "Toggle this help"),
+                        ("", ""),
+                        ("Viewport", ""),
+                        ("F", "Frame selection"),
+                        ("H", "Hide/show selected"),
+                        ("Alt+H", "Show all"),
+                        ("1", "Front view"),
+                        ("3", "Right view"),
+                        ("7", "Top view"),
+                        ("5", "Toggle ortho/perspective"),
+                        ("", ""),
+                        ("Gizmo Modes", ""),
+                        ("G", "Translate"),
+                        ("R", "Rotate"),
+                        ("S", "Scale"),
+                        ("E", "Elongation"),
+                        ("P", "Repetition"),
+                        ("", ""),
+                        ("Playback", ""),
+                        ("Space", "Play / Pause"),
+                    ];
+                    for (key, desc) in shortcuts {
+                        if desc.is_empty() && !key.is_empty() {
+                            gui.label(egui::RichText::new(*key).strong());
+                            gui.end_row();
+                        } else if key.is_empty() {
+                            gui.end_row();
+                        } else {
+                            gui.label(egui::RichText::new(*key).monospace());
+                            gui.label(*desc);
+                            gui.end_row();
+                        }
+                    }
+                });
+            });
+        if !open { ui.show_help = false; }
+    }
+
+    // ── Scene description popup ──
+    if ui.show_description && !scene.scene.description.is_empty() {
+        let mut open = true;
+        egui::Window::new(&scene.scene.name)
+            .collapsible(false)
+            .default_width(400.0)
+            .anchor(egui::Align2::CENTER_CENTER, [0.0, 0.0])
+            .open(&mut open)
+            .show(&ctx, |wui| {
+                wui.label(&scene.scene.description);
+            });
+        if !open { ui.show_description = false; }
     }
 
     // ── Snapshot for undo before mutations ──
@@ -697,6 +847,26 @@ pub fn editor_ui(
                 bone_changed = true;
             }
         }
+        ShortcutAction::TogglePlayback => {
+            if !ui.animation_playing {
+                // Starting playback — snapshot rest pose if first time
+                if ui.rest_pose.is_none() {
+                    ui.rest_pose = Some(scene.scene.root_bone.clone());
+                }
+            }
+            ui.animation_playing = !ui.animation_playing;
+        }
+        ShortcutAction::ResetPlayback => {
+            ui.animation_time = 0.0;
+            ui.animation_playing = false;
+            litsdf_core::physics::reset_physics(&mut ui.physics_states);
+            // Force Avian to respawn entities on next play
+            scene.topology_hash = scene.topology_hash.wrapping_add(1);
+            if let Some(rest) = ui.rest_pose.take() {
+                scene.scene.root_bone = rest;
+                scene.dirty = true;
+            }
+        }
         ShortcutAction::None => {}
     }
 
@@ -706,6 +876,12 @@ pub fn editor_ui(
         scene.scene = result.scene;
         ui.node_graphs = result.shape_graphs;
         ui.bone_graphs = result.bone_graphs;
+        ui.show_description = !scene.scene.description.is_empty();
+        // Auto-play if the scene has physics bones
+        if litsdf_core::models::SdfBone::has_physics_bones(&scene.scene.root_bone) {
+            ui.animation_playing = true;
+            ui.rest_pose = Some(scene.scene.root_bone.clone());
+        }
         scene.selected_shape = None;
         scene.selected_bone = None;
         scene.dirty = true;
@@ -883,6 +1059,13 @@ pub fn editor_ui(
                 }
             }
         }
+        tree::ContextAction::ToggleBonePhysics(bone_id) => {
+            if let Some(bone) = scene.scene.root_bone.find_bone_mut(bone_id) {
+                bone.physics.mass = if bone.physics.mass > 0.0 { 0.0 } else { 1.0 };
+                // Re-populate bone properties since mass changed
+                ui.prev_selected_bone = None;
+            }
+        }
     }
 
     // ── Handle litui button clicks ──
@@ -892,7 +1075,6 @@ pub fn editor_ui(
     handlers::handle_apply_yaml(&mut ui, &mut scene);
     let shape_changed = handlers::handle_shape_selection(&mut ui, &mut scene);
     handlers::handle_reset_transform(&mut ui, &mut scene);
-    handlers::handle_clear_modifiers(&mut ui, &mut scene);
     handlers::handle_save_load(&mut ui);
     handlers::handle_file_browser(&mut ui, &mut scene);
 
@@ -914,22 +1096,11 @@ pub fn editor_ui(
                         ui.md.state.uniform_scale = shape.transform.scale as f64;
                     }
                     litsdf_render::picking::GizmoMode::Elongation => {
-                        for m in &shape.modifiers {
-                            if let litsdf_core::models::ShapeModifier::Elongation(v) = m {
-                                ui.md.state.mod_elong_x = v[0] as f64;
-                                ui.md.state.mod_elong_y = v[1] as f64;
-                                ui.md.state.mod_elong_z = v[2] as f64;
-                            }
-                        }
+                        // Modifiers are edited directly via egui modifier stack;
+                        // drag handles write to shape.modifiers, which egui reads next frame.
                     }
                     litsdf_render::picking::GizmoMode::Repetition => {
-                        for m in &shape.modifiers {
-                            if let litsdf_core::models::ShapeModifier::Repetition { period, .. } = m {
-                                ui.md.state.mod_rep_x = period[0] as f64;
-                                ui.md.state.mod_rep_y = period[1] as f64;
-                                ui.md.state.mod_rep_z = period[2] as f64;
-                            }
-                        }
+                        // Same — drag handles write directly to shape.modifiers.
                     }
                 }
             }
@@ -955,15 +1126,31 @@ pub fn editor_ui(
         sync::sync_bone_properties(&mut ui, &mut scene);
     }
 
+    // ── Advance managed animation clock ──
+    if ui.animation_playing {
+        ui.animation_time += time.delta_secs();
+    }
+    scene.physics_paused = !ui.physics_enabled;
+
     // ── Evaluate node graphs ──
     // Node outputs override shape properties each frame (additive to base values).
     // This runs after sync so slider edits are captured, and before undo so
     // node-driven changes don't pollute the undo stack.
-    let elapsed = time.elapsed_secs();
+    let elapsed = ui.animation_time;
     let mut any_graph_active = false;
+    if ui.animation_enabled {
+    // Snapshot rest pose on first animation frame (for reset)
+    let has_graphs = ui.node_graphs.values().any(|s| s.node_ids().next().is_some())
+        || ui.bone_graphs.values().any(|s| s.node_ids().next().is_some());
+    if has_graphs && ui.rest_pose.is_none() {
+        ui.rest_pose = Some(scene.scene.root_bone.clone());
+    }
     for (shape_id, snarl) in &ui.node_graphs {
         if snarl.node_ids().next().is_none() { continue; } // empty graph
-        let outputs = crate::nodes::evaluate_graph(snarl, elapsed);
+        // Find the bone that owns this shape, to get its physics readings
+        let bone_id = scene.scene.root_bone.find_shape(*shape_id).map(|(_, bid)| bid);
+        let shape_physics = bone_id.and_then(|bid| scene.physics_readings.get(&bid));
+        let outputs = crate::nodes::evaluate_graph(snarl, elapsed, shape_physics);
         if let Some((shape, _)) = scene.scene.root_bone.find_shape_mut(*shape_id) {
             let mut changed = false;
             if let Some(v) = outputs.tx { shape.transform.translation[0] = v; changed = true; }
@@ -1013,9 +1200,29 @@ pub fn editor_ui(
         }
     }
     // Evaluate bone graphs
+    scene.force_outputs.clear();
     for (bone_id, snarl) in &ui.bone_graphs {
         if snarl.node_ids().next().is_none() { continue; }
-        let outputs = crate::nodes::evaluate_bone_graph(snarl, elapsed);
+        let physics_reading = scene.physics_readings.get(bone_id);
+        let outputs = crate::nodes::evaluate_bone_graph(snarl, elapsed, physics_reading);
+        // Collect force outputs for Avian
+        let has_forces = outputs.force_x.is_some() || outputs.force_y.is_some()
+            || outputs.force_z.is_some() || outputs.torque_x.is_some()
+            || outputs.torque_y.is_some() || outputs.torque_z.is_some();
+        if has_forces {
+            scene.force_outputs.insert(*bone_id, litsdf_render::scene_sync::BoneForceOutputs {
+                force: [
+                    outputs.force_x.unwrap_or(0.0),
+                    outputs.force_y.unwrap_or(0.0),
+                    outputs.force_z.unwrap_or(0.0),
+                ],
+                torque: [
+                    outputs.torque_x.unwrap_or(0.0),
+                    outputs.torque_y.unwrap_or(0.0),
+                    outputs.torque_z.unwrap_or(0.0),
+                ],
+            });
+        }
         if let Some(bone) = scene.scene.root_bone.find_bone_mut(*bone_id) {
             let mut changed = false;
             if let Some(v) = outputs.tx { bone.transform.translation[0] = v; changed = true; }
@@ -1032,12 +1239,35 @@ pub fn editor_ui(
         }
     }
 
-    // Keep scene dirty while graphs are active (animation)
+    } // if ui.animation_enabled
+
+    // ── Physics step (custom solver, only when Avian is disabled) ──
+    if ui.physics_enabled && !scene.use_avian {
+        let offsets = litsdf_core::physics::step_physics(
+            &scene.scene.root_bone,
+            &mut ui.physics_states,
+            scene.scene.settings.gravity,
+            time.delta_secs(),
+        );
+        for (bone_id, offset) in &offsets {
+            if let Some(bone) = scene.scene.root_bone.find_bone_mut(*bone_id) {
+                bone.transform.translation[0] += offset[0];
+                bone.transform.translation[1] += offset[1];
+                bone.transform.translation[2] += offset[2];
+            }
+        }
+        if !offsets.is_empty() {
+            scene.dirty = true;
+            any_graph_active = true; // treat physics as animation for undo skip
+        }
+    }
+
+    // Keep scene dirty while graphs are active (animation/physics)
     if any_graph_active {
         scene.dirty = true;
     }
 
-    // Push undo snapshot if scene changed this frame (skip node-driven changes)
+    // Push undo snapshot if scene changed this frame (skip node/physics-driven changes)
     if !any_graph_active && scene.scene != scene_before {
         undo_history.push(scene_before);
     }
@@ -1055,6 +1285,7 @@ enum ShortcutAction {
     Copy, Paste,
     CameraFront, CameraRight, CameraTop, ToggleOrtho,
     AddBone, AddShape(String),
+    TogglePlayback, ResetPlayback,
 }
 
 fn find_parent_of_bone(bone: &litsdf_core::models::SdfBone, target: BoneId) -> Option<BoneId> {
@@ -1106,12 +1337,12 @@ mod tests {
         hand.shapes.push(SdfShape::new("Capsule", SdfPrimitive::Capsule { radius: 0.2, half_height: 0.3 }));
         arm.children.push(hand);
         root.children.push(arm);
-        SdfScene { name: "test".into(), root_bone: root, combination: CombinationOp::Union, light_dir: [0.6, 0.8, 0.4], settings: SceneSettings::default() }
+        SdfScene { name: "test".into(), description: String::new(), root_bone: root, combination: CombinationOp::Union, light_dir: [0.6, 0.8, 0.4], settings: SceneSettings::default() }
     }
 
     fn make_state(scene: SdfScene) -> (EditorUi, SdfSceneState) {
         (EditorUi::default(), SdfSceneState {
-            scene, selected_shape: None, selected_bone: None, show_bone_gizmos: false, dirty: false, topology_hash: 0,
+            scene, selected_shape: None, selected_bone: None, show_bone_gizmos: false, dirty: false, topology_hash: 0, use_avian: false, physics_readings: HashMap::new(), force_outputs: HashMap::new(), physics_paused: true,
         })
     }
 
@@ -1187,7 +1418,7 @@ mod tests {
         arm1.shapes.push(torus);
         arm.children.push(arm1);
         root.children.push(arm);
-        let scene = SdfScene { name: "test".into(), root_bone: root, combination: CombinationOp::Union, light_dir: [0.6, 0.8, 0.4], settings: SceneSettings::default() };
+        let scene = SdfScene { name: "test".into(), description: String::new(), root_bone: root, combination: CombinationOp::Union, light_dir: [0.6, 0.8, 0.4], settings: SceneSettings::default() };
 
         let arm1_id = scene.root_bone.children[0].children[0].id;
         let (mut ui, mut scene_state) = make_state(scene);

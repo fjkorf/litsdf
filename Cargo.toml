@@ -8,6 +8,7 @@ serde_yaml = "0.9"
 uuid = { version = "1", features = ["serde", "v4"] }
 glam = "0.30"
 clap = { version = "4", features = ["derive"] }
+avian3d = "0.5"
 bevy = "0.18"
 bevy_egui = "0.39"
 egui = "0.33"

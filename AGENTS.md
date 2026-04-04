@@ -19,7 +19,7 @@ The app targets artists and technical users who want to create complex SDF objec
 - **Realtime feedback**: Every property change must update the 3D viewport immediately. The `dirty` flag on `SdfSceneState` triggers shader parameter rebuild.
 - **Compact YAML persistence**: Scenes save/load as human-readable YAML. Default values are omitted via `#[serde(skip_serializing_if)]` — a shape with default transform/material produces just its id, name, and primitive.
 - **Viewport picking**: Click shapes in the 3D viewport to select them. CPU-side ray marching with the same SDF formulas as the shader.
-- **Test coverage**: 21 unit tests for data model, scene flattening, property sync, compact YAML. Screenshot tests for visual regression.
+- **Test coverage**: 76 unit tests for data model, scene flattening, property sync, compact YAML, physics. Screenshot tests for visual regression.
 
 ## Architecture Overview
 
@@ -58,9 +58,10 @@ crates/
       scene.rs           — compute_bone_world_transforms, flatten_bone_tree, anim_eval
       sdf.rs             — CPU-side SDF primitives (sd_sphere, sd_box, etc.)
       persistence.rs     — YAML save/load, scenes directory
-  litsdf_render/         — Bevy rendering plugin
+  litsdf_render/         — Bevy rendering plugin + Avian physics
     src/
       lib.rs             — SdfRenderPlugin registration
+      avian_physics.rs   — SdfPhysicsPlugin, shadow entities, sync systems
       shader.rs          — SdfMaterial, ShaderShape, SdfShaderParams (GPU types)
       scene_sync.rs      — SdfSceneState resource, sync_scene_to_shader, build_shader_params
       camera.rs          — OrbitCamera, setup_camera, orbit_camera
@@ -123,10 +124,11 @@ The shader receives a flat `SdfShaderParams` uniform with `shape_count` and `sha
 
 ### Bone Hierarchy
 
-Bones are purely spatial organizers. Each bone has:
+Bones are spatial organizers with optional physics. Each bone has:
 - `id: BoneId` (UUID, root uses `Uuid::nil()`)
 - `name: String`
 - `transform: ShapeTransform` (local, relative to parent)
+- `physics: BonePhysicsProps` (mass, damping, rotation_limits — default mass=0 means kinematic)
 - `children: Vec<SdfBone>` (recursive tree)
 - `shapes: Vec<SdfShape>` (shapes attached to this bone)
 
@@ -136,6 +138,34 @@ Bones are purely spatial organizers. Each bone has:
 3. Each shape uses its own `combination` op. First shape overall gets Union (ignored by shader).
 
 The root bone is always at origin, immutable, cannot be deleted. New scenes always have a root bone.
+
+### Bone Physics (Avian3D)
+
+Physics uses Avian3D 0.5 (Bevy 0.18 compatible) via a shadow entity layer. `SdfPhysicsPlugin` in `avian_physics.rs` mirrors the bone tree as Bevy entities:
+
+- **Root bone** → `RigidBody::Static` (fixed anchor)
+- **mass == 0** → `RigidBody::Kinematic` (animation drives transform via node graphs)
+- **mass > 0** → `RigidBody::Dynamic` with `Collider`, `Mass`, `LinearDamping`, `AngularDamping`
+- **Parent-child** → `DistanceJoint` (fixed-distance pendulum constraint). SphericalJoint locks dynamic bodies — do NOT use.
+
+**Important**: Avian runs in `FixedPostUpdate`. Sync systems must also be in `FixedPostUpdate`. Spawn/pause systems can be in `Update` (commands apply before next FixedPostUpdate).
+
+Per-frame flow:
+1. `check_and_spawn` (Update) — spawns/despawns shadow entities on topology change
+2. `sync_physics_pause` (Update) — pauses/unpauses `Time<Physics>`
+3. `apply_node_forces` (FixedPostUpdate, before Prepare) — applies force outputs from node graphs
+4. `sync_kinematic_to_avian` (FixedPostUpdate, before Prepare) — writes animated bone world transforms to Avian
+5. Avian XPBD solver runs
+6. `sync_avian_to_bones` (FixedPostUpdate, after Writeback) — reads dynamic entity transforms back into bone tree
+7. `collect_physics_readings` (FixedPostUpdate, after Writeback) — populates `BonePhysicsReading` for node graphs
+
+**Node↔Physics bridge**: `BonePhysicsReading` (position, velocity, angular_velocity) flows from Avian to node evaluator. `BoneForceOutputs` (force, torque) flows from node evaluator to Avian. Both stored as plain-data structs on `SdfSceneState` — no Bevy types cross the crate boundary.
+
+`BoneOutput` has 13 input pins: 7 transform + 3 force (X/Y/Z) + 3 torque (X/Y/Z). 4 physics input nodes: `BoneVelocity` (3 outputs), `BoneAngularVelocity` (3), `BoneWorldPosition` (3), `BoneSpeed` (1 scalar).
+
+`physics_paused` on `SdfSceneState` gates Avian's `Time<Physics>`. The editor sets it from `!physics_enabled`. Physics and animation are independent toggles.
+
+A custom fallback solver (`physics.rs`) remains available when `use_avian = false`.
 
 ### UI Architecture
 
@@ -211,14 +241,17 @@ All fields have `#[serde(default)]` for backwards compatibility — loading old 
 
 ### Testing
 
-**Unit tests** (21 total):
+**Unit tests** (76 total):
 - `models::tests` — YAML round-trips, bone find/remove, compact YAML (omits defaults, keeps non-defaults, round-trip stability)
 - `scene::tests` — Shader param flattening, bone transform composition
 - `persistence::tests` — Save/load, file listing
+- `physics::tests` — Gravity, damping, reset, collider approximation, damping conversion
+- `demos::tests` — All 9 demos construct correctly, primitive gallery has 13 shapes
 - `ui::tests` — Click-through flow (bone→shape→edit), no-dirty-when-unchanged, nested bone selection
 
 **Screenshot tests**:
 - `LITSDF_SCREENSHOT=path.png cargo run` — single frame capture
+- `LITSDF_SCREENSHOT_FRAME=N` — capture at frame N (default 30)
 - `LITSDF_TEST_SEQUENCE=dir/ cargo run` — multi-step sequence with bone selection changes
 - `./tests/screenshot_test.sh` — runs default + nested + multi-bone scenes
 

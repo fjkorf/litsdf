@@ -2,32 +2,6 @@ use litsdf_render::scene_sync::SdfSceneState;
 
 use super::app;
 
-fn get_mod_f32(mods: &[litsdf_core::models::ShapeModifier], kind: &str) -> f64 {
-    use litsdf_core::models::ShapeModifier::*;
-    for m in mods {
-        match (kind, m) {
-            ("rounding", Rounding(v)) => return *v as f64,
-            ("onion", Onion(v)) => return *v as f64,
-            ("twist", Twist(v)) => return *v as f64,
-            ("bend", Bend(v)) => return *v as f64,
-            _ => {}
-        }
-    }
-    0.0
-}
-
-fn get_mod_vec3(mods: &[litsdf_core::models::ShapeModifier], kind: &str) -> (f64, f64, f64) {
-    use litsdf_core::models::ShapeModifier::*;
-    for m in mods {
-        match (kind, m) {
-            ("elongation", Elongation(v)) => return (v[0] as f64, v[1] as f64, v[2] as f64),
-            ("repetition", Repetition { period, .. }) => return (period[0] as f64, period[1] as f64, period[2] as f64),
-            _ => {}
-        }
-    }
-    (0.0, 0.0, 0.0)
-}
-
 fn f32_to_rgba(c: [f32; 3]) -> [u8; 4] {
     [(c[0] * 255.0) as u8, (c[1] * 255.0) as u8, (c[2] * 255.0) as u8, 255]
 }
@@ -102,19 +76,7 @@ pub fn populate_shape_properties(ui: &mut EditorUi, scene: &SdfSceneState) {
     ui.md.state.noise_oct = shape.material.noise_octaves as f64;
     // Symmetry
     ui.md.state.smooth_sym = shape.material.smooth_symmetry as f64;
-    // Modifiers
-    ui.md.state.mod_rounding = get_mod_f32(&shape.modifiers, "rounding");
-    ui.md.state.mod_onion = get_mod_f32(&shape.modifiers, "onion");
-    ui.md.state.mod_twist = get_mod_f32(&shape.modifiers, "twist");
-    ui.md.state.mod_bend = get_mod_f32(&shape.modifiers, "bend");
-    let (ex, ey, ez) = get_mod_vec3(&shape.modifiers, "elongation");
-    ui.md.state.mod_elong_x = ex;
-    ui.md.state.mod_elong_y = ey;
-    ui.md.state.mod_elong_z = ez;
-    let (rx, ry, rz) = get_mod_vec3(&shape.modifiers, "repetition");
-    ui.md.state.mod_rep_x = rx;
-    ui.md.state.mod_rep_y = ry;
-    ui.md.state.mod_rep_z = rz;
+    // Modifiers are now edited directly via the egui modifier stack (modifier_stack.rs)
     // Combine
     ui.md.state.combo_op = combo_to_index(&shape.combination);
     ui.md.state.smooth_k = combo_smooth_k(&shape.combination) as f64;
@@ -140,6 +102,8 @@ pub fn populate_bone_properties(ui: &mut EditorUi, scene: &SdfSceneState) {
             ui.md.state.bone_rx = bone.transform.rotation[0] as f64;
             ui.md.state.bone_ry = bone.transform.rotation[1] as f64;
             ui.md.state.bone_rz = bone.transform.rotation[2] as f64;
+            ui.md.state.bone_mass = bone.physics.mass as f64;
+            ui.md.state.bone_damping = bone.physics.damping as f64;
         }
     }
 }

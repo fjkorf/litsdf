@@ -83,6 +83,7 @@ pub fn create() -> DemoResult {
     DemoResult {
         scene: SdfScene {
             name: "Mushroom Garden".into(),
+            description: "Stylized mushrooms using Cosine Palette, Cellular, Ridged, and Gradient Snow color modes with noise displacement.".into(),
             root_bone: root,
             combination: CombinationOp::Union,
             light_dir: [0.5, 0.9, 0.3],

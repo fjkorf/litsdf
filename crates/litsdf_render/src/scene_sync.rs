@@ -5,6 +5,21 @@ use litsdf_core::models::{BoneId, ShapeId, SdfScene};
 use litsdf_core::scene;
 use crate::shader::{SdfMaterial, SdfShaderParams, ShaderShape, MAX_SHAPES};
 
+/// Physics state readable by node graphs (no Bevy types).
+#[derive(Debug, Clone, Default)]
+pub struct BonePhysicsReading {
+    pub position: [f32; 3],
+    pub linear_velocity: [f32; 3],
+    pub angular_velocity: [f32; 3],
+}
+
+/// Force/torque outputs from node graphs to apply to Avian entities.
+#[derive(Debug, Clone, Default)]
+pub struct BoneForceOutputs {
+    pub force: [f32; 3],
+    pub torque: [f32; 3],
+}
+
 #[derive(Resource)]
 pub struct SdfSceneState {
     pub scene: SdfScene,
@@ -13,6 +28,10 @@ pub struct SdfSceneState {
     pub show_bone_gizmos: bool,
     pub dirty: bool,
     pub topology_hash: u64,
+    pub use_avian: bool,
+    pub physics_paused: bool,
+    pub physics_readings: HashMap<BoneId, BonePhysicsReading>,
+    pub force_outputs: HashMap<BoneId, BoneForceOutputs>,
 }
 
 impl Default for SdfSceneState {
@@ -24,6 +43,10 @@ impl Default for SdfSceneState {
             show_bone_gizmos: false,
             dirty: true,
             topology_hash: 0,
+            use_avian: true,
+            physics_paused: true,
+            physics_readings: HashMap::new(),
+            force_outputs: HashMap::new(),
         }
     }
 }

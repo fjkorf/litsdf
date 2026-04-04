@@ -4,6 +4,11 @@ mod modifier_parade;
 mod mushroom_garden;
 mod robot_friend;
 mod abstract_sculpture;
+mod hanging_chain;
+mod pendulum;
+mod damping_lab;
+mod speed_glow;
+mod wave_force;
 
 use std::collections::HashMap;
 use egui_snarl::Snarl;
@@ -24,6 +29,11 @@ pub enum DemoScene {
     MushroomGarden,
     RobotFriend,
     AbstractSculpture,
+    HangingChain,
+    Pendulum,
+    DampingLab,
+    SpeedGlow,
+    WaveForce,
 }
 
 impl DemoScene {
@@ -35,6 +45,11 @@ impl DemoScene {
             Self::MushroomGarden => "Mushroom Garden",
             Self::RobotFriend => "Robot Friend",
             Self::AbstractSculpture => "Abstract Sculpture",
+            Self::HangingChain => "Hanging Chain",
+            Self::Pendulum => "Pendulum",
+            Self::DampingLab => "Damping Lab",
+            Self::SpeedGlow => "Speed Glow",
+            Self::WaveForce => "Wave Force",
         }
     }
 
@@ -46,6 +61,11 @@ impl DemoScene {
             Self::MushroomGarden,
             Self::RobotFriend,
             Self::AbstractSculpture,
+            Self::HangingChain,
+            Self::Pendulum,
+            Self::DampingLab,
+            Self::SpeedGlow,
+            Self::WaveForce,
         ]
     }
 }
@@ -58,6 +78,11 @@ pub fn load_demo(demo: DemoScene) -> DemoResult {
         DemoScene::MushroomGarden => mushroom_garden::create(),
         DemoScene::RobotFriend => robot_friend::create(),
         DemoScene::AbstractSculpture => abstract_sculpture::create(),
+        DemoScene::HangingChain => hanging_chain::create(),
+        DemoScene::Pendulum => pendulum::create(),
+        DemoScene::DampingLab => damping_lab::create(),
+        DemoScene::SpeedGlow => speed_glow::create(),
+        DemoScene::WaveForce => wave_force::create(),
     }
 }
 

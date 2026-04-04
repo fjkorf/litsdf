@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use bevy::prelude::*;
 use bevy_egui::EguiPlugin;
 
@@ -17,6 +18,7 @@ fn main() {
     }))
     .add_plugins(EguiPlugin::default())
     .add_plugins(SdfRenderPlugin)
+    .add_plugins(litsdf_render::avian_physics::SdfPhysicsPlugin)
     .add_plugins(SdfEditorPlugin);
 
     // LITSDF_DEMO=name — load a demo scene at startup
@@ -28,18 +30,26 @@ fn main() {
             "mushroom" => litsdf_editor::demos::DemoScene::MushroomGarden,
             "robot" => litsdf_editor::demos::DemoScene::RobotFriend,
             "sculpture" | "abstract" => litsdf_editor::demos::DemoScene::AbstractSculpture,
+            "chain" | "hanging" => litsdf_editor::demos::DemoScene::HangingChain,
+            "pendulum" => litsdf_editor::demos::DemoScene::Pendulum,
+            "damping" => litsdf_editor::demos::DemoScene::DampingLab,
+            "speed" | "glow" => litsdf_editor::demos::DemoScene::SpeedGlow,
+            "wave" | "force" => litsdf_editor::demos::DemoScene::WaveForce,
             _ => {
-                eprintln!("Unknown demo: {demo_name}. Options: gallery, boolean, modifier, mushroom, robot, sculpture");
+                eprintln!("Unknown demo: {demo_name}. Options: gallery, boolean, modifier, mushroom, robot, sculpture, chain, pendulum, damping, speed, wave");
                 litsdf_editor::demos::DemoScene::PrimitiveGallery
             }
         };
         let result = litsdf_editor::demos::load_demo(demo);
+        let has_physics = litsdf_core::models::SdfBone::has_physics_bones(&result.scene.root_bone);
         app.insert_resource(litsdf_render::scene_sync::SdfSceneState {
             scene: result.scene,
             selected_shape: None,
             selected_bone: None,
             show_bone_gizmos: false,
-            dirty: true, topology_hash: 0,
+            dirty: true, topology_hash: 0, use_avian: true,
+            physics_readings: HashMap::new(), force_outputs: HashMap::new(),
+            physics_paused: !has_physics,
         });
         // Note: demo node graphs are loaded by the editor on first frame via the demo menu mechanism
     }
@@ -53,7 +63,7 @@ fn main() {
                     selected_shape: None,
                     selected_bone: None,
                     show_bone_gizmos: false,
-                    dirty: true, topology_hash: 0,
+                    dirty: true, topology_hash: 0, use_avian: true, physics_readings: HashMap::new(), force_outputs: HashMap::new(), physics_paused: true,
                 });
             }
             Err(e) => eprintln!("Failed to load scene: {e}"),
@@ -61,11 +71,14 @@ fn main() {
     }
 
     // LITSDF_SCREENSHOT=path.png — single screenshot and exit
+    // LITSDF_SCREENSHOT_FRAME=N — capture at frame N (default 30)
     if let Ok(path) = std::env::var("LITSDF_SCREENSHOT") {
+        let frame = std::env::var("LITSDF_SCREENSHOT_FRAME")
+            .ok().and_then(|s| s.parse().ok()).unwrap_or(30u32);
         app.insert_resource(ScreenshotConfig {
             path,
-            capture_frame: 30,
-            exit_frame: 35,
+            capture_frame: frame,
+            exit_frame: frame + 5,
         })
         .add_systems(Update, testing::auto_screenshot);
     }

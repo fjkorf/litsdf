@@ -82,11 +82,24 @@ pub enum SdfNode {
     /// 1D noise sampled at time * frequency. Organic random motion.
     Noise1D { frequency: f32 },
 
+    // ── Physics Input Nodes ──
+    /// Outputs bone's linear velocity X/Y/Z from Avian physics.
+    BoneVelocity,
+
+    /// Outputs bone's angular velocity X/Y/Z from Avian physics.
+    BoneAngularVelocity,
+
+    /// Outputs bone's world position X/Y/Z from Avian physics.
+    BoneWorldPosition,
+
+    /// Outputs scalar speed (length of velocity vector).
+    BoneSpeed,
+
     // ── Output / Sink Nodes ──
     /// Shape property output. Collects final values to write into shape properties.
     ShapeOutput,
 
-    /// Bone property output. Collects final values to write into bone transform.
+    /// Bone property output. Collects final values to write into bone transform + physics forces.
     BoneOutput,
 }
 
@@ -115,6 +128,10 @@ impl SdfNode {
             Self::ExpImpulse { .. } => "Exp Impulse",
             Self::SmoothStep { .. } => "Smooth Step",
             Self::Noise1D { .. } => "Noise 1D",
+            Self::BoneVelocity => "Bone Velocity",
+            Self::BoneAngularVelocity => "Bone Angular Vel",
+            Self::BoneWorldPosition => "Bone World Pos",
+            Self::BoneSpeed => "Bone Speed",
             Self::ShapeOutput => "Shape Output",
             Self::BoneOutput => "Bone Output",
         }
@@ -142,8 +159,9 @@ impl SdfNode {
             Self::ExpImpulse { .. } => 2,    // value, k
             Self::SmoothStep { .. } => 3,    // value, edge0, edge1
             Self::Noise1D { .. } => 2,       // time, frequency
-            Self::ShapeOutput => 27,  // transform(7) + color(3) + material(3) + noise(3) + symmetry(1) + modifiers(10)
-            Self::BoneOutput => 7,    // tx, ty, tz, rx, ry, rz, scale
+            Self::BoneVelocity | Self::BoneAngularVelocity | Self::BoneWorldPosition | Self::BoneSpeed => 0,
+            Self::ShapeOutput => 27,
+            Self::BoneOutput => 13,   // transform(7) + force(3) + torque(3)
         }
     }
 
@@ -163,7 +181,9 @@ impl SdfNode {
             Self::SquareWave { .. } | Self::TriangleWave { .. } | Self::SawtoothWave { .. } => 1,
             Self::EaseInOut { .. } | Self::Remap { .. } | Self::Abs | Self::Modulo { .. }
             | Self::ExpImpulse { .. } | Self::SmoothStep { .. } | Self::Noise1D { .. } => 1,
-            Self::CosinePalette => 1,  // Vec3 output
+            Self::CosinePalette => 1,
+            Self::BoneVelocity | Self::BoneAngularVelocity | Self::BoneWorldPosition => 3,
+            Self::BoneSpeed => 1,
             Self::ShapeOutput | Self::BoneOutput => 0,
         }
     }
@@ -291,6 +311,12 @@ impl SdfNode {
                 4 => "Rot Y",
                 5 => "Rot Z",
                 6 => "Scale",
+                7 => "Force X",
+                8 => "Force Y",
+                9 => "Force Z",
+                10 => "Torque X",
+                11 => "Torque Y",
+                12 => "Torque Z",
                 _ => "?",
             },
             _ => "In",
@@ -316,6 +342,13 @@ impl SdfNode {
                 2 => "Z",
                 _ => "?",
             },
+            Self::BoneVelocity | Self::BoneAngularVelocity | Self::BoneWorldPosition => match index {
+                0 => "X",
+                1 => "Y",
+                2 => "Z",
+                _ => "?",
+            },
+            Self::BoneSpeed => "Speed",
             Self::ShapeOutput | Self::BoneOutput => "?",
         }
     }
@@ -343,5 +376,10 @@ impl SdfNode {
             Self::ConstantVec3 { .. } | Self::Vec3Compose | Self::CosinePalette => PinType::Vec3,
             _ => PinType::Float,
         }
+    }
+
+    /// Whether this node is a physics input (only meaningful in bone graphs).
+    pub fn is_physics_node(&self) -> bool {
+        matches!(self, Self::BoneVelocity | Self::BoneAngularVelocity | Self::BoneWorldPosition | Self::BoneSpeed)
     }
 }

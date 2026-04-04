@@ -1,3 +1,4 @@
+pub mod avian_physics;
 pub mod camera;
 pub mod codegen;
 pub mod gizmos;

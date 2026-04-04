@@ -59,6 +59,7 @@ pub fn create() -> DemoResult {
     DemoResult {
         scene: SdfScene {
             name: "Modifier Parade".into(),
+            description: "Each shape has a different domain modifier applied: Rounding, Shell, Twist, Bend, Elongation, and Repetition.".into(),
             root_bone: root,
             combination: CombinationOp::Union,
             light_dir: [0.6, 0.8, 0.4],

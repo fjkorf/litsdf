@@ -67,10 +67,25 @@ pub struct BoneOutputValues {
     pub ry: Option<f32>,
     pub rz: Option<f32>,
     pub scale: Option<f32>,
+    // Physics force/torque outputs
+    pub force_x: Option<f32>,
+    pub force_y: Option<f32>,
+    pub force_z: Option<f32>,
+    pub torque_x: Option<f32>,
+    pub torque_y: Option<f32>,
+    pub torque_z: Option<f32>,
 }
 
+/// Physics state readable by node graphs (passed from Avian via SdfSceneState).
+pub use litsdf_render::scene_sync::BonePhysicsReading;
+
 /// Evaluate a bone graph and return BoneOutput values.
-pub fn evaluate_bone_graph(snarl: &Snarl<SdfNode>, time: f32) -> BoneOutputValues {
+/// `physics` provides velocity/position readings from Avian for physics input nodes.
+pub fn evaluate_bone_graph(
+    snarl: &Snarl<SdfNode>,
+    time: f32,
+    physics: Option<&BonePhysicsReading>,
+) -> BoneOutputValues {
     let mut cache: HashMap<OutPinId, PinValue> = HashMap::new();
     let mut result = BoneOutputValues::default();
 
@@ -83,7 +98,7 @@ pub fn evaluate_bone_graph(snarl: &Snarl<SdfNode>, time: f32) -> BoneOutputValue
             let in_pin = snarl.in_pin(in_pin_id);
 
             if let Some(&remote) = in_pin.remotes.first() {
-                let value = eval_output(snarl, remote, time, &mut cache);
+                let value = eval_output(snarl, remote, time, physics, &mut cache);
                 let f = value.as_float();
                 match input_idx {
                     0 => result.tx = Some(f),
@@ -93,6 +108,12 @@ pub fn evaluate_bone_graph(snarl: &Snarl<SdfNode>, time: f32) -> BoneOutputValue
                     4 => result.ry = Some(f),
                     5 => result.rz = Some(f),
                     6 => result.scale = Some(f),
+                    7 => result.force_x = Some(f),
+                    8 => result.force_y = Some(f),
+                    9 => result.force_z = Some(f),
+                    10 => result.torque_x = Some(f),
+                    11 => result.torque_y = Some(f),
+                    12 => result.torque_z = Some(f),
                     _ => {}
                 }
             }
@@ -103,7 +124,8 @@ pub fn evaluate_bone_graph(snarl: &Snarl<SdfNode>, time: f32) -> BoneOutputValue
 }
 
 /// Evaluate a node graph and return the ShapeOutput values.
-pub fn evaluate_graph(snarl: &Snarl<SdfNode>, time: f32) -> ShapeOutputValues {
+/// `physics` provides the owning bone's physics readings for BoneSpeed/BoneVelocity nodes.
+pub fn evaluate_graph(snarl: &Snarl<SdfNode>, time: f32, physics: Option<&BonePhysicsReading>) -> ShapeOutputValues {
     let mut cache: HashMap<OutPinId, PinValue> = HashMap::new();
     let mut result = ShapeOutputValues::default();
 
@@ -117,7 +139,7 @@ pub fn evaluate_graph(snarl: &Snarl<SdfNode>, time: f32) -> ShapeOutputValues {
             let in_pin = snarl.in_pin(in_pin_id);
 
             if let Some(&remote) = in_pin.remotes.first() {
-                let value = eval_output(snarl, remote, time, &mut cache);
+                let value = eval_output(snarl, remote, time, physics, &mut cache);
                 let f = value.as_float();
                 match input_idx {
                     0 => result.tx = Some(f),
@@ -161,6 +183,7 @@ fn eval_output(
     snarl: &Snarl<SdfNode>,
     pin: OutPinId,
     time: f32,
+    physics: Option<&BonePhysicsReading>,
     cache: &mut HashMap<OutPinId, PinValue>,
 ) -> PinValue {
     if let Some(&cached) = cache.get(&pin) {
@@ -168,7 +191,7 @@ fn eval_output(
     }
 
     let node = &snarl[pin.node];
-    let value = eval_node(snarl, pin.node, node, pin.output, time, cache);
+    let value = eval_node(snarl, pin.node, node, pin.output, time, physics, cache);
 
     cache.insert(pin, value);
     value
@@ -180,13 +203,14 @@ fn get_input(
     node_id: NodeId,
     input_idx: usize,
     time: f32,
+    physics: Option<&BonePhysicsReading>,
     cache: &mut HashMap<OutPinId, PinValue>,
 ) -> Option<PinValue> {
     let in_pin_id = InPinId { node: node_id, input: input_idx };
     let in_pin = snarl.in_pin(in_pin_id);
 
     if let Some(&remote) = in_pin.remotes.first() {
-        Some(eval_output(snarl, remote, time, cache))
+        Some(eval_output(snarl, remote, time, physics, cache))
     } else {
         None
     }
@@ -198,9 +222,10 @@ fn get_input_float(
     input_idx: usize,
     default: f32,
     time: f32,
+    physics: Option<&BonePhysicsReading>,
     cache: &mut HashMap<OutPinId, PinValue>,
 ) -> f32 {
-    get_input(snarl, node_id, input_idx, time, cache)
+    get_input(snarl, node_id, input_idx, time, physics, cache)
         .map(|v| v.as_float())
         .unwrap_or(default)
 }
@@ -212,16 +237,17 @@ fn eval_node(
     node: &SdfNode,
     output_idx: usize,
     time: f32,
+    physics: Option<&BonePhysicsReading>,
     cache: &mut HashMap<OutPinId, PinValue>,
 ) -> PinValue {
     match node {
         SdfNode::Time => PinValue::Float(time),
 
         SdfNode::SinOscillator { amplitude, frequency, phase } => {
-            let amp = get_input_float(snarl, node_id, 0, *amplitude, time, cache);
-            let freq = get_input_float(snarl, node_id, 1, *frequency, time, cache);
-            let ph = get_input_float(snarl, node_id, 2, *phase, time, cache);
-            let t = get_input_float(snarl, node_id, 3, time, time, cache);
+            let amp = get_input_float(snarl, node_id, 0, *amplitude, time, physics, cache);
+            let freq = get_input_float(snarl, node_id, 1, *frequency, time, physics, cache);
+            let ph = get_input_float(snarl, node_id, 2, *phase, time, physics, cache);
+            let t = get_input_float(snarl, node_id, 3, time, time, physics, cache);
             let value = amp * (t * freq * std::f32::consts::TAU + ph).sin();
             PinValue::Float(value)
         }
@@ -231,45 +257,45 @@ fn eval_node(
         SdfNode::ConstantVec3 { value } => PinValue::Vec3(*value),
 
         SdfNode::Add => {
-            let a = get_input_float(snarl, node_id, 0, 0.0, time, cache);
-            let b = get_input_float(snarl, node_id, 1, 0.0, time, cache);
+            let a = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let b = get_input_float(snarl, node_id, 1, 0.0, time, physics, cache);
             PinValue::Float(a + b)
         }
 
         SdfNode::Multiply => {
-            let a = get_input_float(snarl, node_id, 0, 0.0, time, cache);
-            let b = get_input_float(snarl, node_id, 1, 1.0, time, cache);
+            let a = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let b = get_input_float(snarl, node_id, 1, 1.0, time, physics, cache);
             PinValue::Float(a * b)
         }
 
         SdfNode::Mix { factor } => {
-            let a = get_input_float(snarl, node_id, 0, 0.0, time, cache);
-            let b = get_input_float(snarl, node_id, 1, 0.0, time, cache);
-            let f = get_input_float(snarl, node_id, 2, *factor, time, cache);
+            let a = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let b = get_input_float(snarl, node_id, 1, 0.0, time, physics, cache);
+            let f = get_input_float(snarl, node_id, 2, *factor, time, physics, cache);
             PinValue::Float(a * (1.0 - f) + b * f)
         }
 
         SdfNode::Clamp { min, max } => {
-            let v = get_input_float(snarl, node_id, 0, 0.0, time, cache);
-            let lo = get_input_float(snarl, node_id, 1, *min, time, cache);
-            let hi = get_input_float(snarl, node_id, 2, *max, time, cache);
+            let v = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let lo = get_input_float(snarl, node_id, 1, *min, time, physics, cache);
+            let hi = get_input_float(snarl, node_id, 2, *max, time, physics, cache);
             PinValue::Float(v.clamp(lo, hi))
         }
 
         SdfNode::Negate => {
-            let v = get_input_float(snarl, node_id, 0, 0.0, time, cache);
+            let v = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
             PinValue::Float(-v)
         }
 
         SdfNode::Vec3Compose => {
-            let x = get_input_float(snarl, node_id, 0, 0.0, time, cache);
-            let y = get_input_float(snarl, node_id, 1, 0.0, time, cache);
-            let z = get_input_float(snarl, node_id, 2, 0.0, time, cache);
+            let x = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let y = get_input_float(snarl, node_id, 1, 0.0, time, physics, cache);
+            let z = get_input_float(snarl, node_id, 2, 0.0, time, physics, cache);
             PinValue::Vec3([x, y, z])
         }
 
         SdfNode::Vec3Decompose => {
-            let v = get_input(snarl, node_id, 0, time, cache)
+            let v = get_input(snarl, node_id, 0, time, physics, cache)
                 .map(|v| v.as_vec3())
                 .unwrap_or([0.0; 3]);
             match output_idx {
@@ -281,38 +307,38 @@ fn eval_node(
         }
 
         SdfNode::SquareWave { amplitude, frequency, phase } => {
-            let amp = get_input_float(snarl, node_id, 0, *amplitude, time, cache);
-            let freq = get_input_float(snarl, node_id, 1, *frequency, time, cache);
-            let ph = get_input_float(snarl, node_id, 2, *phase, time, cache);
-            let t = get_input_float(snarl, node_id, 3, time, time, cache);
+            let amp = get_input_float(snarl, node_id, 0, *amplitude, time, physics, cache);
+            let freq = get_input_float(snarl, node_id, 1, *frequency, time, physics, cache);
+            let ph = get_input_float(snarl, node_id, 2, *phase, time, physics, cache);
+            let t = get_input_float(snarl, node_id, 3, time, time, physics, cache);
             let phase_val = t * freq * std::f32::consts::TAU + ph;
             let value = amp * if phase_val.sin() >= 0.0 { 1.0 } else { -1.0 };
             PinValue::Float(value)
         }
 
         SdfNode::TriangleWave { amplitude, frequency, phase } => {
-            let amp = get_input_float(snarl, node_id, 0, *amplitude, time, cache);
-            let freq = get_input_float(snarl, node_id, 1, *frequency, time, cache);
-            let ph = get_input_float(snarl, node_id, 2, *phase, time, cache);
-            let t = get_input_float(snarl, node_id, 3, time, time, cache);
+            let amp = get_input_float(snarl, node_id, 0, *amplitude, time, physics, cache);
+            let freq = get_input_float(snarl, node_id, 1, *frequency, time, physics, cache);
+            let ph = get_input_float(snarl, node_id, 2, *phase, time, physics, cache);
+            let t = get_input_float(snarl, node_id, 3, time, time, physics, cache);
             let p = t * freq + ph / std::f32::consts::TAU;
             let value = amp * (2.0 * (2.0 * (p - (p + 0.5).floor())).abs() - 1.0);
             PinValue::Float(value)
         }
 
         SdfNode::SawtoothWave { amplitude, frequency, phase } => {
-            let amp = get_input_float(snarl, node_id, 0, *amplitude, time, cache);
-            let freq = get_input_float(snarl, node_id, 1, *frequency, time, cache);
-            let ph = get_input_float(snarl, node_id, 2, *phase, time, cache);
-            let t = get_input_float(snarl, node_id, 3, time, time, cache);
+            let amp = get_input_float(snarl, node_id, 0, *amplitude, time, physics, cache);
+            let freq = get_input_float(snarl, node_id, 1, *frequency, time, physics, cache);
+            let ph = get_input_float(snarl, node_id, 2, *phase, time, physics, cache);
+            let t = get_input_float(snarl, node_id, 3, time, time, physics, cache);
             let p = t * freq + ph / std::f32::consts::TAU;
             let value = amp * 2.0 * (p - (p + 0.5).floor());
             PinValue::Float(value)
         }
 
         SdfNode::EaseInOut { exponent } => {
-            let v = get_input_float(snarl, node_id, 0, 0.0, time, cache);
-            let exp = get_input_float(snarl, node_id, 1, *exponent, time, cache);
+            let v = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let exp = get_input_float(snarl, node_id, 1, *exponent, time, physics, cache);
             let clamped = v.clamp(0.0, 1.0);
             let result = if clamped < 0.5 {
                 0.5 * (2.0 * clamped).powf(exp)
@@ -323,36 +349,36 @@ fn eval_node(
         }
 
         SdfNode::Remap { in_min, in_max, out_min, out_max } => {
-            let v = get_input_float(snarl, node_id, 0, 0.0, time, cache);
-            let imin = get_input_float(snarl, node_id, 1, *in_min, time, cache);
-            let imax = get_input_float(snarl, node_id, 2, *in_max, time, cache);
-            let omin = get_input_float(snarl, node_id, 3, *out_min, time, cache);
-            let omax = get_input_float(snarl, node_id, 4, *out_max, time, cache);
+            let v = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let imin = get_input_float(snarl, node_id, 1, *in_min, time, physics, cache);
+            let imax = get_input_float(snarl, node_id, 2, *in_max, time, physics, cache);
+            let omin = get_input_float(snarl, node_id, 3, *out_min, time, physics, cache);
+            let omax = get_input_float(snarl, node_id, 4, *out_max, time, physics, cache);
             let t_val = if (imax - imin).abs() < 1e-10 { 0.0 } else { (v - imin) / (imax - imin) };
             PinValue::Float(omin + t_val * (omax - omin))
         }
 
         SdfNode::Abs => {
-            let v = get_input_float(snarl, node_id, 0, 0.0, time, cache);
+            let v = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
             PinValue::Float(v.abs())
         }
 
         SdfNode::Modulo { divisor } => {
-            let v = get_input_float(snarl, node_id, 0, 0.0, time, cache);
-            let d = get_input_float(snarl, node_id, 1, *divisor, time, cache);
+            let v = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let d = get_input_float(snarl, node_id, 1, *divisor, time, physics, cache);
             let result = if d.abs() < 1e-10 { 0.0 } else { v % d };
             PinValue::Float(result)
         }
 
         SdfNode::CosinePalette => {
-            let t_val = get_input_float(snarl, node_id, 0, 0.0, time, cache);
-            let a = get_input(snarl, node_id, 1, time, cache)
+            let t_val = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let a = get_input(snarl, node_id, 1, time, physics, cache)
                 .map(|v| v.as_vec3()).unwrap_or([0.5, 0.5, 0.5]);
-            let b = get_input(snarl, node_id, 2, time, cache)
+            let b = get_input(snarl, node_id, 2, time, physics, cache)
                 .map(|v| v.as_vec3()).unwrap_or([0.5, 0.5, 0.5]);
-            let c = get_input(snarl, node_id, 3, time, cache)
+            let c = get_input(snarl, node_id, 3, time, physics, cache)
                 .map(|v| v.as_vec3()).unwrap_or([1.0, 1.0, 1.0]);
-            let d = get_input(snarl, node_id, 4, time, cache)
+            let d = get_input(snarl, node_id, 4, time, physics, cache)
                 .map(|v| v.as_vec3()).unwrap_or([0.0, 0.33, 0.67]);
             let tau = std::f32::consts::TAU;
             let result = [
@@ -364,23 +390,23 @@ fn eval_node(
         }
 
         SdfNode::ExpImpulse { k } => {
-            let v = get_input_float(snarl, node_id, 0, 0.0, time, cache);
-            let kk = get_input_float(snarl, node_id, 1, *k, time, cache);
+            let v = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let kk = get_input_float(snarl, node_id, 1, *k, time, physics, cache);
             let result = if kk <= 0.0 || v <= 0.0 { 0.0 } else { kk * v * (-kk * v + 1.0).exp() };
             PinValue::Float(result)
         }
 
         SdfNode::SmoothStep { edge0, edge1 } => {
-            let v = get_input_float(snarl, node_id, 0, 0.0, time, cache);
-            let e0 = get_input_float(snarl, node_id, 1, *edge0, time, cache);
-            let e1 = get_input_float(snarl, node_id, 2, *edge1, time, cache);
+            let v = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let e0 = get_input_float(snarl, node_id, 1, *edge0, time, physics, cache);
+            let e1 = get_input_float(snarl, node_id, 2, *edge1, time, physics, cache);
             let t_val = if (e1 - e0).abs() < 1e-10 { 0.0 } else { ((v - e0) / (e1 - e0)).clamp(0.0, 1.0) };
             PinValue::Float(t_val * t_val * (3.0 - 2.0 * t_val))
         }
 
         SdfNode::Noise1D { frequency } => {
-            let t = get_input_float(snarl, node_id, 0, time, time, cache);
-            let freq = get_input_float(snarl, node_id, 1, *frequency, time, cache);
+            let t = get_input_float(snarl, node_id, 0, time, time, physics, cache);
+            let freq = get_input_float(snarl, node_id, 1, *frequency, time, physics, cache);
             // Simple 1D hash-based noise
             let x = t * freq;
             let i = x.floor();
@@ -390,6 +416,26 @@ fn eval_node(
             let a = hash(i);
             let b = hash(i + 1.0);
             PinValue::Float(a + (b - a) * f)
+        }
+
+        SdfNode::BoneVelocity => {
+            let v = physics.map(|p| p.linear_velocity).unwrap_or([0.0; 3]);
+            match output_idx { 0 => PinValue::Float(v[0]), 1 => PinValue::Float(v[1]), 2 => PinValue::Float(v[2]), _ => PinValue::Float(0.0) }
+        }
+
+        SdfNode::BoneAngularVelocity => {
+            let v = physics.map(|p| p.angular_velocity).unwrap_or([0.0; 3]);
+            match output_idx { 0 => PinValue::Float(v[0]), 1 => PinValue::Float(v[1]), 2 => PinValue::Float(v[2]), _ => PinValue::Float(0.0) }
+        }
+
+        SdfNode::BoneWorldPosition => {
+            let v = physics.map(|p| p.position).unwrap_or([0.0; 3]);
+            match output_idx { 0 => PinValue::Float(v[0]), 1 => PinValue::Float(v[1]), 2 => PinValue::Float(v[2]), _ => PinValue::Float(0.0) }
+        }
+
+        SdfNode::BoneSpeed => {
+            let v = physics.map(|p| p.linear_velocity).unwrap_or([0.0; 3]);
+            PinValue::Float((v[0] * v[0] + v[1] * v[1] + v[2] * v[2]).sqrt())
         }
 
         SdfNode::ShapeOutput | SdfNode::BoneOutput => PinValue::Float(0.0), // sinks
@@ -408,7 +454,7 @@ mod tests {
         let out = snarl.insert_node(egui::pos2(200.0, 0.0), SdfNode::ShapeOutput);
         snarl.connect(OutPinId { node: c, output: 0 }, InPinId { node: out, input: 1 }); // ty
 
-        let result = evaluate_graph(&snarl, 0.0);
+        let result = evaluate_graph(&snarl, 0.0, None);
         assert!(result.tx.is_none());
         assert_eq!(result.ty, Some(1.5));
     }
@@ -428,11 +474,11 @@ mod tests {
         snarl.connect(OutPinId { node: osc, output: 0 }, InPinId { node: out, input: 1 });
 
         // At time=0, sin(0 * 1.0 * TAU + 0) = sin(0) = 0
-        let result = evaluate_graph(&snarl, 0.0);
+        let result = evaluate_graph(&snarl, 0.0, None);
         assert!((result.ty.unwrap() - 0.0).abs() < 0.001);
 
         // At time=0.25, sin(0.25 * 1.0 * TAU) = sin(PI/2) = 1.0
-        let result = evaluate_graph(&snarl, 0.25);
+        let result = evaluate_graph(&snarl, 0.25, None);
         assert!((result.ty.unwrap() - 1.0).abs() < 0.001);
     }
 
@@ -448,7 +494,7 @@ mod tests {
         snarl.connect(OutPinId { node: b, output: 0 }, InPinId { node: mul, input: 1 });
         snarl.connect(OutPinId { node: mul, output: 0 }, InPinId { node: out, input: 6 }); // scale
 
-        let result = evaluate_graph(&snarl, 0.0);
+        let result = evaluate_graph(&snarl, 0.0, None);
         assert_eq!(result.scale, Some(6.0));
     }
 
@@ -457,7 +503,7 @@ mod tests {
         let mut snarl = Snarl::new();
         snarl.insert_node(egui::pos2(0.0, 0.0), SdfNode::ShapeOutput);
 
-        let result = evaluate_graph(&snarl, 0.0);
+        let result = evaluate_graph(&snarl, 0.0, None);
         assert!(result.tx.is_none());
         assert!(result.ty.is_none());
         assert!(result.scale.is_none());

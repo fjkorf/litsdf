@@ -103,46 +103,6 @@ widgets:
     max: 0.1
     decimals: 3
     label: "Mirror (smoothness)"
-  rounding_cfg:
-    min: 0.0
-    max: 1.0
-    label: "Rounding (edge radius)"
-  onion_cfg:
-    min: 0.0
-    max: 0.5
-    label: "Shell (wall thickness)"
-  twist_cfg:
-    min: -5.0
-    max: 5.0
-    label: "Twist (Y-axis warp)"
-  bend_cfg:
-    min: -5.0
-    max: 5.0
-    label: "Bend (X-axis warp)"
-  elong_x_cfg:
-    min: 0.0
-    max: 2.0
-    label: Elongate X
-  elong_y_cfg:
-    min: 0.0
-    max: 2.0
-    label: Elongate Y
-  elong_z_cfg:
-    min: 0.0
-    max: 2.0
-    label: Elongate Z
-  rep_x_cfg:
-    min: 0.0
-    max: 5.0
-    label: Repeat X (period)
-  rep_y_cfg:
-    min: 0.0
-    max: 5.0
-    label: Repeat Y (period)
-  rep_z_cfg:
-    min: 0.0
-    max: 5.0
-    label: Repeat Z (period)
   bone_tx_cfg:
     speed: 0.05
     decimals: 2
@@ -179,7 +139,6 @@ widgets:
   on_delete_shape: {}
   on_edit_yaml: {}
   on_reset_transform: {}
-  on_clear_modifiers: {}
   scene_name_cfg:
     hint: Scene name
   light_x_cfg:
@@ -218,6 +177,21 @@ widgets:
     min: 0.0
     max: 1.0
     label: "Vignette"
+  gravity_cfg:
+    min: -20.0
+    max: 0.0
+    decimals: 1
+    label: "Gravity"
+  bone_mass_cfg:
+    min: 0.0
+    max: 10.0
+    decimals: 2
+    label: "Mass"
+  bone_damping_cfg:
+    min: 0.0
+    max: 1.0
+    decimals: 2
+    label: "Damping"
 ---
 
 [textedit](scene_name){scene_name_cfg}
@@ -244,6 +218,10 @@ widgets:
 
 [slider](vignette_intensity){vignette_cfg}
 
+#### Physics
+
+[slider](gravity){gravity_cfg}
+
 ---
 
 ## Properties
@@ -267,6 +245,12 @@ widgets:
 [slider](bone_ry){bone_ry_cfg}
 
 [slider](bone_rz){bone_rz_cfg}
+
+#### Bone Physics
+
+[slider](bone_mass){bone_mass_cfg}
+
+[slider](bone_damping){bone_damping_cfg}
 
 :::
 
@@ -360,30 +344,6 @@ widgets:
 #### Symmetry
 
 [slider](smooth_sym){symmetry_cfg}
-
-#### Modifiers
-
-[slider](mod_rounding){rounding_cfg}
-
-[slider](mod_onion){onion_cfg}
-
-[slider](mod_twist){twist_cfg}
-
-[slider](mod_bend){bend_cfg}
-
-[slider](mod_elong_x){elong_x_cfg}
-
-[slider](mod_elong_y){elong_y_cfg}
-
-[slider](mod_elong_z){elong_z_cfg}
-
-[slider](mod_rep_x){rep_x_cfg}
-
-[slider](mod_rep_y){rep_y_cfg}
-
-[slider](mod_rep_z){rep_z_cfg}
-
-[button](Clear_Modifiers){on_clear_modifiers}
 
 ---
 

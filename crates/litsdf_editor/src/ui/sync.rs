@@ -102,19 +102,7 @@ pub fn sync_shape_properties(ui: &mut EditorUi, scene: &mut SdfSceneState) {
         changed = true;
     }
 
-    // Modifiers — rebuild from slider values
-    let new_mods = build_modifiers(
-        ui.md.state.mod_rounding as f32,
-        ui.md.state.mod_onion as f32,
-        ui.md.state.mod_twist as f32,
-        ui.md.state.mod_bend as f32,
-        [ui.md.state.mod_elong_x as f32, ui.md.state.mod_elong_y as f32, ui.md.state.mod_elong_z as f32],
-        [ui.md.state.mod_rep_x as f32, ui.md.state.mod_rep_y as f32, ui.md.state.mod_rep_z as f32],
-    );
-    if shape.modifiers != new_mods {
-        shape.modifiers = new_mods;
-        changed = true;
-    }
+    // Modifiers are now edited directly via the egui modifier stack (modifier_stack.rs)
 
     let combo = index_to_combo(ui.md.state.combo_op, ui.md.state.smooth_k as f32);
     if shape.combination != combo {
@@ -125,18 +113,6 @@ pub fn sync_shape_properties(ui: &mut EditorUi, scene: &mut SdfSceneState) {
     if changed {
         scene.dirty = true;
     }
-}
-
-fn build_modifiers(rounding: f32, onion: f32, twist: f32, bend: f32, elongation: [f32; 3], rep_period: [f32; 3]) -> Vec<litsdf_core::models::ShapeModifier> {
-    use litsdf_core::models::ShapeModifier;
-    let mut mods = Vec::new();
-    if rounding > 0.0 { mods.push(ShapeModifier::Rounding(rounding)); }
-    if onion > 0.0 { mods.push(ShapeModifier::Onion(onion)); }
-    if twist.abs() > 0.001 { mods.push(ShapeModifier::Twist(twist)); }
-    if bend.abs() > 0.001 { mods.push(ShapeModifier::Bend(bend)); }
-    if elongation != [0.0, 0.0, 0.0] { mods.push(ShapeModifier::Elongation(elongation)); }
-    if rep_period != [0.0, 0.0, 0.0] { mods.push(ShapeModifier::Repetition { period: rep_period, count: [3, 3, 3] }); }
-    mods
 }
 
 pub fn sync_bone_properties(ui: &mut EditorUi, scene: &mut SdfSceneState) {
@@ -156,4 +132,10 @@ pub fn sync_bone_properties(ui: &mut EditorUi, scene: &mut SdfSceneState) {
         bone.name = nn;
     }
 
+    let new_mass = ui.md.state.bone_mass as f32;
+    let new_damping = ui.md.state.bone_damping as f32;
+    if bone.physics.mass != new_mass || bone.physics.damping != new_damping {
+        bone.physics.mass = new_mass;
+        bone.physics.damping = new_damping;
+    }
 }

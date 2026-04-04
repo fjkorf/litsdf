@@ -58,11 +58,13 @@ pub fn create() -> DemoResult {
         ao_intensity: 4.0,
         shadow_softness: 12.0,
         vignette_intensity: 0.4,
+        ..SceneSettings::default()
     };
 
     DemoResult {
         scene: SdfScene {
             name: "Abstract Sculpture".into(),
+            description: "A spinning sculpture combining SmoothIntersection, Twist modifier, and color cycling animation. Custom scene lighting.".into(),
             root_bone: root,
             combination: CombinationOp::Union,
             light_dir: [0.4, 0.7, 0.6],
