@@ -63,6 +63,7 @@ LITSDF_SCREENSHOT=path.png cargo run --bin litsdf  # screenshot
 - Use `#[uniform(0)]` with inline data for SdfMaterial, NOT storage buffers
 - Skip property sync on the frame selection changes
 - When drag handles are active, suppress orbit camera and property sync
+- Gizmo handles use bone-local axes (not world axes) — `get_local_axes()` transforms X/Y/Z by parent bone's world rotation
 - All model fields need `#[serde(default, skip_serializing_if)]` for compact YAML
 - `litsdf_core` must NOT depend on Bevy — use `glam` directly
 - `glam` version must match Bevy's internal glam (0.30) to avoid type mismatches

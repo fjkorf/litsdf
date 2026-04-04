@@ -1121,7 +1121,8 @@ pub struct ClickTracker { press_pos: Option<Vec2> }
 ```rust
 pub struct DragState {
     pub active: bool,
-    pub axis: Vec3,
+    pub axis: Vec3,         // local axis direction in world space (for projection)
+    pub axis_index: usize,  // 0=X, 1=Y, 2=Z (which component to modify)
     pub start_world_pos: Vec3,
     pub start_value: [f32; 3],
     pub start_cursor: Vec2,
@@ -1161,7 +1162,7 @@ pub fn pick_shape(ray: Ray3d, scene: &SdfScene) -> Option<(ShapeId, BoneId)>
 ```
 
 
-#### `pick_system` (line 129)
+#### `pick_system` (line 130)
 
 ```rust
 pub fn pick_system(
@@ -1175,7 +1176,16 @@ pub fn pick_system(
 ```
 
 
-#### `draw_handles` (line 168)
+#### `get_local_axes` (line 168)
+
+```rust
+fn get_local_axes(scene: &SdfSceneState) -> [Vec3; 3]
+```
+
+Get the local coordinate axes for the selected shape/bone in world space.
+These are the parent bone's world rotation applied to X/Y/Z unit vectors.
+
+#### `draw_handles` (line 208)
 
 ```rust
 pub fn draw_handles(
@@ -1187,7 +1197,7 @@ pub fn draw_handles(
 ```
 
 
-#### `drag_system` (line 238)
+#### `drag_system` (line 279)
 
 ```rust
 pub fn drag_system(
@@ -1202,7 +1212,7 @@ pub fn drag_system(
 ```
 
 
-#### `get_selected_world_pos` (line 362)
+#### `get_selected_world_pos` (line 404)
 
 ```rust
 pub fn get_selected_world_pos(scene: &SdfSceneState) -> Option<Vec3>

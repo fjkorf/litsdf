@@ -75,9 +75,20 @@ The `GizmoMode` resource controls what property the drag handles edit:
 | **Elongation** | E | Double-headed lines | ShapeModifier::Elongation | Shapes only |
 | **Repetition** | P | Lines + cross tips | ShapeModifier::Repetition.period | Shapes only |
 
-All modes use RGB for X/Y/Z axes. The drag projects screen delta onto the constrained world axis, scaled by camera distance. Mode keys are guarded by `!ctx.wants_keyboard_input()` (don't fire during text editing).
+All modes use RGB for X/Y/Z axes. The drag projects screen delta onto the constrained axis, scaled by camera distance. Mode keys are guarded by `!ctx.wants_keyboard_input()`.
 
 When a **bone** is selected (no shape), translate and rotate handles appear at the bone's world position. Elongation and Repetition modes are ignored for bones (bones don't have modifiers).
+
+### Local Axes (Bone-Aware)
+
+Gizmo axes are **bone-local**, not world-aligned. `get_local_axes()` extracts the parent bone's world rotation quaternion and transforms the X/Y/Z unit vectors. This means:
+
+- Shapes on a rotated bone show gizmo handles aligned with the bone's local frame
+- For bone selection, the bone's PARENT rotation is used (since we're editing the bone's own local transform)
+- Root-level shapes fall back to world axes
+- `DragState.axis` stores the local axis direction; `DragState.axis_index` (0/1/2) stores which component to modify
+
+This ensures the visual handles match the coordinate space of the property being edited (shape.transform is local to the parent bone).
 
 The status bar shows the current gizmo mode name.
 

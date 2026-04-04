@@ -38,6 +38,7 @@
 - **litui numeric features** — integer sliders, step quantization, decimal precision, dragvalue range/suffix
 - **Position drag values** — unbounded drag inputs replace bounded sliders for tx/ty/tz
 - **Single-key shortcut guard** — Delete/F/H/G/R/E/P don't fire during text editing
+- **Bone-local gizmo axes** — handles align with parent bone rotation, not world axes
 
 ## Removed (replaced by node editor)
 
