@@ -132,22 +132,25 @@ pub fn editor_ui(
     if ctx.input_mut(|i| i.consume_shortcut(&shortcuts::DUPLICATE)) {
         shortcut_action = ShortcutAction::Duplicate;
     }
-    if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Delete))
-        || ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Backspace))
-    {
-        shortcut_action = ShortcutAction::Delete;
-    }
-    if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape)) {
-        shortcut_action = ShortcutAction::Deselect;
-    }
-    if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::F)) {
-        shortcut_action = ShortcutAction::FrameSelection;
-    }
-    if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::H)) {
-        shortcut_action = ShortcutAction::HideSelected;
-    }
-    if ctx.input_mut(|i| i.consume_key(egui::Modifiers::ALT, egui::Key::H)) {
-        shortcut_action = ShortcutAction::ShowAll;
+    // Single-key shortcuts only fire when no text widget has focus
+    if !ctx.wants_keyboard_input() {
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Delete))
+            || ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Backspace))
+        {
+            shortcut_action = ShortcutAction::Delete;
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Escape)) {
+            shortcut_action = ShortcutAction::Deselect;
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::F)) {
+            shortcut_action = ShortcutAction::FrameSelection;
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::H)) {
+            shortcut_action = ShortcutAction::HideSelected;
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::ALT, egui::Key::H)) {
+            shortcut_action = ShortcutAction::ShowAll;
+        }
     }
 
     // ── Menu bar ──
