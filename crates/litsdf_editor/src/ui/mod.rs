@@ -105,6 +105,7 @@ pub fn editor_ui(
     mut scene: ResMut<SdfSceneState>,
     mut undo_history: ResMut<crate::undo::UndoHistory>,
     drag_state: Res<litsdf_render::picking::DragState>,
+    mut gizmo_mode: ResMut<litsdf_render::picking::GizmoMode>,
     mut camera_query: Query<&mut OrbitCamera>,
     time: Res<Time>,
 ) {
@@ -150,6 +151,19 @@ pub fn editor_ui(
         }
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::ALT, egui::Key::H)) {
             shortcut_action = ShortcutAction::ShowAll;
+        }
+        // Gizmo mode switching
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::G)) {
+            *gizmo_mode = litsdf_render::picking::GizmoMode::Translate;
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::R)) {
+            *gizmo_mode = litsdf_render::picking::GizmoMode::Rotate;
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::E)) {
+            *gizmo_mode = litsdf_render::picking::GizmoMode::Elongation;
+        }
+        if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::P)) {
+            *gizmo_mode = litsdf_render::picking::GizmoMode::Repetition;
         }
     }
 
@@ -255,6 +269,8 @@ pub fn editor_ui(
             } else {
                 bar_ui.label("No selection");
             }
+            bar_ui.separator();
+            bar_ui.label(gizmo_mode.label());
             bar_ui.separator();
             let info = scene.scene.info();
             bar_ui.label(format!("{} bones, {} shapes", info.bone_count, info.shape_count));
@@ -815,9 +831,36 @@ pub fn editor_ui(
     if drag_state.active {
         if let Some(sel_id) = scene.selected_shape {
             if let Some((shape, _)) = scene.scene.root_bone.find_shape(sel_id) {
-                ui.md.state.tx = shape.transform.translation[0] as f64;
-                ui.md.state.ty = shape.transform.translation[1] as f64;
-                ui.md.state.tz = shape.transform.translation[2] as f64;
+                match *gizmo_mode {
+                    litsdf_render::picking::GizmoMode::Translate => {
+                        ui.md.state.tx = shape.transform.translation[0] as f64;
+                        ui.md.state.ty = shape.transform.translation[1] as f64;
+                        ui.md.state.tz = shape.transform.translation[2] as f64;
+                    }
+                    litsdf_render::picking::GizmoMode::Rotate => {
+                        ui.md.state.rx = shape.transform.rotation[0] as f64;
+                        ui.md.state.ry = shape.transform.rotation[1] as f64;
+                        ui.md.state.rz = shape.transform.rotation[2] as f64;
+                    }
+                    litsdf_render::picking::GizmoMode::Elongation => {
+                        for m in &shape.modifiers {
+                            if let litsdf_core::models::ShapeModifier::Elongation(v) = m {
+                                ui.md.state.mod_elong_x = v[0] as f64;
+                                ui.md.state.mod_elong_y = v[1] as f64;
+                                ui.md.state.mod_elong_z = v[2] as f64;
+                            }
+                        }
+                    }
+                    litsdf_render::picking::GizmoMode::Repetition => {
+                        for m in &shape.modifiers {
+                            if let litsdf_core::models::ShapeModifier::Repetition { period, .. } = m {
+                                ui.md.state.mod_rep_x = period[0] as f64;
+                                ui.md.state.mod_rep_y = period[1] as f64;
+                                ui.md.state.mod_rep_z = period[2] as f64;
+                            }
+                        }
+                    }
+                }
             }
         }
     } else if !bone_changed && !shape_changed {

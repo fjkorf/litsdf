@@ -18,6 +18,7 @@ impl Plugin for SdfRenderPlugin {
             .init_resource::<scene_sync::SdfSceneState>()
             .init_resource::<picking::ClickTracker>()
             .init_resource::<picking::DragState>()
+            .init_resource::<picking::GizmoMode>()
             .add_systems(Startup, (camera::setup_camera, scene_sync::setup_initial_scene))
             .add_systems(Update, (
                 camera::orbit_camera,

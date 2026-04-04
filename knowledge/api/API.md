@@ -1112,13 +1112,11 @@ use crate::scene_sync::SdfSceneState;
 #### `ClickTracker` (line 117)
 
 ```rust
-pub struct ClickTracker {
-    press_pos: Option<Vec2>,
-}
+pub struct ClickTracker { press_pos: Option<Vec2> }
 ```
 
 
-#### `DragState` (line 122)
+#### `DragState` (line 120)
 
 ```rust
 pub struct DragState {
@@ -1132,32 +1130,38 @@ pub struct DragState {
 ```
 
 
+### Enums
+
+#### `GizmoMode` (line 19)
+
+```rust
+pub enum GizmoMode {
+    #[default]
+    Translate,
+    Rotate,
+    Elongation,
+    Repetition,
+}
+```
+
+
 ### Functions
 
-#### `sdf_scene` (line 66)
+#### `label` (line 28)
 
 ```rust
-fn sdf_scene(p: Vec3, shapes: &[WorldShape]) -> f32
+    pub fn label(&self) -> &'static str
 ```
 
-Combined scene SDF for ray marching (uses union of all shapes).
 
-#### `pick_shape` (line 75)
-
-```rust
-pub fn pick_shape(ray: Ray3d, scene: &SdfScene) -> Option<(ShapeId, BoneId)>
-```
-
-Ray march to find a hit point, then determine which shape is closest.
-
-#### `pick_shape` (line 75)
+#### `pick_shape` (line 88)
 
 ```rust
 pub fn pick_shape(ray: Ray3d, scene: &SdfScene) -> Option<(ShapeId, BoneId)>
 ```
 
 
-#### `pick_system` (line 131)
+#### `pick_system` (line 129)
 
 ```rust
 pub fn pick_system(
@@ -1171,30 +1175,19 @@ pub fn pick_system(
 ```
 
 
-#### `draw_handles` (line 178)
+#### `draw_handles` (line 168)
 
 ```rust
 pub fn draw_handles(
     mut gizmos: Gizmos,
     scene: Res<SdfSceneState>,
     drag: Res<DragState>,
-)
-```
-
-Draw translation handles at selected shape/bone position.
-
-#### `draw_handles` (line 178)
-
-```rust
-pub fn draw_handles(
-    mut gizmos: Gizmos,
-    scene: Res<SdfSceneState>,
-    drag: Res<DragState>,
+    mode: Res<GizmoMode>,
 )
 ```
 
 
-#### `drag_system` (line 200)
+#### `drag_system` (line 238)
 
 ```rust
 pub fn drag_system(
@@ -1204,26 +1197,12 @@ pub fn drag_system(
     mut scene: ResMut<SdfSceneState>,
     mut drag: ResMut<DragState>,
     egui_wants: Option<Res<EguiWantsInput>>,
-)
-```
-
-Handle drag interaction.
-
-#### `drag_system` (line 200)
-
-```rust
-pub fn drag_system(
-    mouse: Res<ButtonInput<MouseButton>>,
-    windows: Query<&Window>,
-    camera: Query<(&Camera, &GlobalTransform), With<OrbitCamera>>,
-    mut scene: ResMut<SdfSceneState>,
-    mut drag: ResMut<DragState>,
-    egui_wants: Option<Res<EguiWantsInput>>,
+    mode: Res<GizmoMode>,
 )
 ```
 
 
-#### `get_selected_world_pos` (line 270)
+#### `get_selected_world_pos` (line 348)
 
 ```rust
 pub fn get_selected_world_pos(scene: &SdfSceneState) -> Option<Vec3>
@@ -1754,6 +1733,7 @@ pub fn editor_ui(
     mut scene: ResMut<SdfSceneState>,
     mut undo_history: ResMut<crate::undo::UndoHistory>,
     drag_state: Res<litsdf_render::picking::DragState>,
+    mut gizmo_mode: ResMut<litsdf_render::picking::GizmoMode>,
     mut camera_query: Query<&mut OrbitCamera>,
     time: Res<Time>,
 )
@@ -1809,7 +1789,7 @@ pub fn sync_shape_properties(ui: &mut EditorUi, scene: &mut SdfSceneState)
 ```
 
 
-#### `sync_bone_properties` (line 142)
+#### `sync_bone_properties` (line 143)
 
 ```rust
 pub fn sync_bone_properties(ui: &mut EditorUi, scene: &mut SdfSceneState)
