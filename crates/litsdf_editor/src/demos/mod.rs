@@ -21,6 +21,13 @@ pub struct DemoResult {
     pub bone_graphs: HashMap<BoneId, Snarl<SdfNode>>,
 }
 
+/// Resource for passing node graphs from main.rs to the editor on startup.
+#[derive(bevy::prelude::Resource)]
+pub struct PendingGraphs {
+    pub shape_graphs: HashMap<ShapeId, Snarl<SdfNode>>,
+    pub bone_graphs: HashMap<BoneId, Snarl<SdfNode>>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DemoScene {
     PrimitiveGallery,

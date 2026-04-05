@@ -19,10 +19,10 @@ pub fn create() -> DemoResult {
     ground.material.metallic = 0.3;
     root.shapes.push(ground);
 
-    // Physics ball bone
+    // Physics ball bone — starts high, wave force creates dramatic bouncing
     let mut ball_bone = SdfBone::new("Ball");
-    ball_bone.transform.translation = [0.0, 0.5, 0.0];
-    ball_bone.physics = BonePhysicsProps { mass: 0.5, damping: 0.99, ..Default::default() };
+    ball_bone.transform.translation = [0.0, 1.5, 0.0];
+    ball_bone.physics = BonePhysicsProps { mass: 0.3, damping: 0.995, ..Default::default() };
     let ball_id = ball_bone.id;
 
     let mut ball = SdfShape::new("Ball", SdfPrimitive::Sphere { radius: 0.25 });
@@ -37,8 +37,9 @@ pub fn create() -> DemoResult {
     // The oscillating force fights gravity, creating a bobbing motion driven by physics.
     let mut graph = Snarl::new();
     let t = graph.insert_node(egui::pos2(50.0, 150.0), SdfNode::Time);
+    // Large amplitude, slow frequency for dramatic visible bouncing
     let osc = graph.insert_node(egui::pos2(250.0, 100.0), SdfNode::SinOscillator {
-        amplitude: 15.0, frequency: 0.5, phase: 0.0,
+        amplitude: 50.0, frequency: 0.3, phase: 0.0,
     });
     let out = graph.insert_node(egui::pos2(500.0, 200.0), SdfNode::BoneOutput);
 

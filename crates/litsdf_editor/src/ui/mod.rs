@@ -128,11 +128,20 @@ pub fn editor_ui(
     mut gizmo_mode: ResMut<litsdf_render::picking::GizmoMode>,
     mut camera_query: Query<&mut OrbitCamera>,
     time: Res<Time>,
+    mut pending_graphs: Option<ResMut<crate::demos::PendingGraphs>>,
 ) {
     let ctx = match contexts.ctx_mut() {
         Ok(c) => c.clone(),
         Err(_) => return,
     };
+
+    // ── Consume pending graphs from LITSDF_DEMO startup ──
+    if let Some(graphs) = pending_graphs.as_mut() {
+        if !graphs.shape_graphs.is_empty() || !graphs.bone_graphs.is_empty() {
+            ui.node_graphs.extend(graphs.shape_graphs.drain());
+            ui.bone_graphs.extend(graphs.bone_graphs.drain());
+        }
+    }
 
     // ── On first frame, sync animation_playing from scene state ──
     // (handles LITSDF_DEMO=chain setting physics_paused=false before editor starts)

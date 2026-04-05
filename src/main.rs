@@ -42,6 +42,10 @@ fn main() {
         };
         let result = litsdf_editor::demos::load_demo(demo);
         let has_physics = litsdf_core::models::SdfBone::has_physics_bones(&result.scene.root_bone);
+        app.insert_resource(litsdf_editor::demos::PendingGraphs {
+            shape_graphs: result.shape_graphs,
+            bone_graphs: result.bone_graphs,
+        });
         app.insert_resource(litsdf_render::scene_sync::SdfSceneState {
             scene: result.scene,
             selected_shape: None,
