@@ -1221,7 +1221,7 @@ pub fn editor_ui(
     if ui.animation_playing {
         ui.animation_time += time.delta_secs();
     }
-    scene.physics_paused = !ui.physics_enabled;
+    scene.physics_paused = !ui.physics_enabled || !ui.animation_playing;
 
     // ── Evaluate node graphs ──
     // Node outputs override shape properties each frame (additive to base values).
