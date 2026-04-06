@@ -331,41 +331,8 @@ pub fn editor_ui(
     ui.animation_enabled = ui_animation_enabled;
     ui.physics_enabled = ui_physics_enabled;
 
-    // ── Status bar ──
-    egui::TopBottomPanel::bottom("status_bar").show(&ctx, |bar_ui| {
-        bar_ui.horizontal(|bar_ui| {
-            if let Some(shape_id) = scene.selected_shape {
-                if let Some((shape, bone_id)) = scene.scene.root_bone.find_shape(shape_id) {
-                    if let Some(bone) = scene.scene.root_bone.find_bone(bone_id) {
-                        bar_ui.label(format!("{} ({}) on {}", shape.name, shape.primitive.label(), bone.name));
-                    }
-                }
-            } else if let Some(bone_id) = scene.selected_bone {
-                if let Some(bone) = scene.scene.root_bone.find_bone(bone_id) {
-                    bar_ui.label(format!("Bone: {}", bone.name));
-                }
-            } else {
-                bar_ui.label("No selection");
-            }
-            bar_ui.separator();
-            bar_ui.label(gizmo_mode.label());
-            bar_ui.separator();
-            // Playback controls
-            let play_label = if ui.animation_playing { "||" } else { ">" };
-            if bar_ui.small_button(play_label).clicked() {
-                shortcut_action = ShortcutAction::TogglePlayback;
-            }
-            if bar_ui.small_button("Reset").clicked() {
-                shortcut_action = ShortcutAction::ResetPlayback;
-            }
-            bar_ui.label(format!("{:.1}s", ui.animation_time));
-            bar_ui.separator();
-            let info = scene.scene.info();
-            bar_ui.label(format!("{} bones, {} shapes", info.bone_count, info.shape_count));
-        });
-    });
-
     // ── Node editor panel (bottom, above status bar) ──
+    // Must be created BEFORE status bar so egui stacks: [node editor | status bar | bottom edge]
     if ui.show_node_editor {
         egui::TopBottomPanel::bottom("node_editor")
             .resizable(true)
@@ -464,6 +431,39 @@ pub fn editor_ui(
                 }
             });
     }
+
+    // ── Status bar (at very bottom, after node editor claims its space) ──
+    egui::TopBottomPanel::bottom("status_bar").show(&ctx, |bar_ui| {
+        bar_ui.horizontal(|bar_ui| {
+            if let Some(shape_id) = scene.selected_shape {
+                if let Some((shape, bone_id)) = scene.scene.root_bone.find_shape(shape_id) {
+                    if let Some(bone) = scene.scene.root_bone.find_bone(bone_id) {
+                        bar_ui.label(format!("{} ({}) on {}", shape.name, shape.primitive.label(), bone.name));
+                    }
+                }
+            } else if let Some(bone_id) = scene.selected_bone {
+                if let Some(bone) = scene.scene.root_bone.find_bone(bone_id) {
+                    bar_ui.label(format!("Bone: {}", bone.name));
+                }
+            } else {
+                bar_ui.label("No selection");
+            }
+            bar_ui.separator();
+            bar_ui.label(gizmo_mode.label());
+            bar_ui.separator();
+            let play_label = if ui.animation_playing { "||" } else { ">" };
+            if bar_ui.small_button(play_label).clicked() {
+                shortcut_action = ShortcutAction::TogglePlayback;
+            }
+            if bar_ui.small_button("Reset").clicked() {
+                shortcut_action = ShortcutAction::ResetPlayback;
+            }
+            bar_ui.label(format!("{:.1}s", ui.animation_time));
+            bar_ui.separator();
+            let info = scene.scene.info();
+            bar_ui.label(format!("{} bones, {} shapes", info.bone_count, info.shape_count));
+        });
+    });
 
     // Detect scene change before name sync overwrites the comparison
     let settings_need_init = ui.md.state.scene_name != scene.scene.name || ui.md.state.scene_name.is_empty();
@@ -1324,6 +1324,7 @@ fn render_tree_panel(ctx: &egui::Context, scene: &SdfSceneState, rename_state: &
 
     egui::SidePanel::left("bone_tree")
         .default_width(220.0)
+        .resizable(true)
         .show(ctx, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 let result = tree::render_bone_tree(ui, &scene.scene.root_bone, scene.selected_bone, scene.selected_shape, rename_state);
