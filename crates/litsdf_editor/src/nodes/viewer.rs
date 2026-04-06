@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+
 use egui::{Color32, Ui};
-use egui_snarl::{InPin, NodeId, OutPin, Snarl};
+use egui_snarl::{InPin, NodeId, OutPinId, OutPin, Snarl};
 use egui_snarl::ui::{PinInfo, SnarlViewer};
 
+use super::eval::PinValue;
 use super::types::{PinType, SdfNode};
 
 const FLOAT_COLOR: Color32 = Color32::from_rgb(0x60, 0xa0, 0xe0);
@@ -12,6 +15,14 @@ const OUTPUT_COLOR: Color32 = Color32::from_rgb(0x40, 0xe0, 0x60);
 
 pub struct SdfNodeViewer {
     pub search_text: String,
+    pub eval_cache: HashMap<OutPinId, PinValue>,
+}
+
+fn format_pin_value(v: &PinValue) -> String {
+    match v {
+        PinValue::Float(f) => format!("{f:.2}"),
+        PinValue::Vec3(v) => format!("[{:.1},{:.1},{:.1}]", v[0], v[1], v[2]),
+    }
 }
 
 #[allow(refining_impl_trait)]
@@ -41,7 +52,8 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
                 Color32::from_rgb(0x3a, 0x3a, 0x7a), // blue — math
             SdfNode::Vec3Compose | SdfNode::Vec3Decompose | SdfNode::CosinePalette =>
                 Color32::from_rgb(0x6a, 0x4a, 0x2a), // amber — vec3/color
-            SdfNode::Compare { .. } | SdfNode::Gate | SdfNode::BoolMath { .. } | SdfNode::StateVar { .. } =>
+            SdfNode::Compare { .. } | SdfNode::Gate | SdfNode::BoolMath { .. } | SdfNode::StateVar { .. }
+            | SdfNode::Expression { .. } =>
                 Color32::from_rgb(0x6a, 0x2a, 0x6a), // purple — logic
             SdfNode::IsColliding | SdfNode::ContactNormal | SdfNode::RaycastDown
             | SdfNode::BoneVelocity | SdfNode::BoneAngularVelocity
@@ -142,8 +154,15 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
                 }
             }
         } else {
-            // Connected — show label only (value comes from wire)
-            ui.label(label);
+            // Connected — show label + current value preview
+            ui.horizontal(|ui| {
+                ui.label(label);
+                if let Some(&remote) = pin.remotes.first() {
+                    if let Some(val) = self.eval_cache.get(&remote) {
+                        ui.weak(format_pin_value(val));
+                    }
+                }
+            });
         }
 
         let color = match pin_type {
@@ -216,7 +235,7 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
     }
 
     fn has_body(&mut self, node: &SdfNode) -> bool {
-        matches!(node, SdfNode::Compare { .. } | SdfNode::BoolMath { .. } | SdfNode::StateVar { .. })
+        matches!(node, SdfNode::Compare { .. } | SdfNode::BoolMath { .. } | SdfNode::StateVar { .. } | SdfNode::Expression { .. })
     }
 
     fn show_body(&mut self, node: NodeId, _inputs: &[InPin], _outputs: &[OutPin], ui: &mut Ui, snarl: &mut Snarl<SdfNode>) {
@@ -248,6 +267,16 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
             SdfNode::StateVar { index } => {
                 ui.add(egui::DragValue::new(index).range(0..=99).prefix("Var #"));
             }
+            SdfNode::Expression { text, var_count } => {
+                let mut edited = text.clone();
+                if ui.text_edit_singleline(&mut edited).changed() {
+                    // Re-parse to count variables
+                    if let Ok(parsed) = crate::nodes::expression::parse(&edited) {
+                        *var_count = parsed.variables.len() as u32;
+                    }
+                    *text = edited;
+                }
+            }
             _ => {}
         }
     }
@@ -268,7 +297,62 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
         ui: &mut Ui,
         snarl: &mut Snarl<SdfNode>,
     ) {
-        ui.label("Add Node");
+        ui.text_edit_singleline(&mut self.search_text);
+
+        // When searching, show flat filtered list
+        if !self.search_text.is_empty() {
+            let filter = self.search_text.to_lowercase();
+            let entries: &[(&str, fn() -> SdfNode)] = &[
+                ("Time", || SdfNode::Time),
+                ("Sin Oscillator", || SdfNode::SinOscillator { amplitude: 1.0, frequency: 1.0, phase: 0.0 }),
+                ("Square Wave", || SdfNode::SquareWave { amplitude: 1.0, frequency: 1.0, phase: 0.0 }),
+                ("Triangle Wave", || SdfNode::TriangleWave { amplitude: 1.0, frequency: 1.0, phase: 0.0 }),
+                ("Sawtooth Wave", || SdfNode::SawtoothWave { amplitude: 1.0, frequency: 1.0, phase: 0.0 }),
+                ("Constant", || SdfNode::Constant { value: 0.0 }),
+                ("Constant Vec3", || SdfNode::ConstantVec3 { value: [0.0; 3] }),
+                ("Add", || SdfNode::Add),
+                ("Multiply", || SdfNode::Multiply),
+                ("Mix", || SdfNode::Mix { factor: 0.5 }),
+                ("Clamp", || SdfNode::Clamp { min: 0.0, max: 1.0 }),
+                ("Negate", || SdfNode::Negate),
+                ("Abs", || SdfNode::Abs),
+                ("Modulo", || SdfNode::Modulo { divisor: 1.0 }),
+                ("Ease In/Out", || SdfNode::EaseInOut { exponent: 2.0 }),
+                ("Remap", || SdfNode::Remap { in_min: 0.0, in_max: 1.0, out_min: 0.0, out_max: 1.0 }),
+                ("Exp Impulse", || SdfNode::ExpImpulse { k: 4.0 }),
+                ("Smooth Step", || SdfNode::SmoothStep { edge0: 0.0, edge1: 1.0 }),
+                ("Noise 1D", || SdfNode::Noise1D { frequency: 1.0 }),
+                ("Vec3 Compose", || SdfNode::Vec3Compose),
+                ("Vec3 Decompose", || SdfNode::Vec3Decompose),
+                ("Cosine Palette", || SdfNode::CosinePalette),
+                ("Compare", || SdfNode::Compare { mode: 0 }),
+                ("Gate", || SdfNode::Gate),
+                ("Bool Math", || SdfNode::BoolMath { op: 0 }),
+                ("State Variable", || SdfNode::StateVar { index: 0 }),
+                ("Is Colliding", || SdfNode::IsColliding),
+                ("Contact Normal", || SdfNode::ContactNormal),
+                ("Raycast Down", || SdfNode::RaycastDown),
+                ("Bone Velocity", || SdfNode::BoneVelocity),
+                ("Bone Angular Vel", || SdfNode::BoneAngularVelocity),
+                ("Bone World Pos", || SdfNode::BoneWorldPosition),
+                ("Bone Speed", || SdfNode::BoneSpeed),
+                ("Expression", || SdfNode::Expression { text: String::new(), var_count: 0 }),
+                ("Shape Output", || SdfNode::ShapeOutput),
+                ("Bone Output", || SdfNode::BoneOutput),
+            ];
+            for (name, ctor) in entries {
+                if name.to_lowercase().contains(&filter) {
+                    if ui.button(*name).clicked() {
+                        snarl.insert_node(pos, ctor());
+                        self.search_text.clear();
+                        ui.close();
+                    }
+                }
+            }
+            return;
+        }
+
+        // Default: categorized menu
         ui.separator();
 
         if ui.button("Time").clicked() {
@@ -426,6 +510,11 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
                 ui.close();
             }
         });
+
+        if ui.button("Expression").clicked() {
+            snarl.insert_node(pos, SdfNode::Expression { text: String::new(), var_count: 0 });
+            ui.close();
+        }
 
         ui.separator();
 

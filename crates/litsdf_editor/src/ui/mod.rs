@@ -423,7 +423,7 @@ pub fn editor_ui(
                     });
                     panel_ui.separator();
                     let snarl = ui.node_graphs.entry(shape_id).or_insert_with(Snarl::new);
-                    snarl.show(&mut SdfNodeViewer { search_text: String::new() }, &style, egui::Id::new("sdf_node_editor"), panel_ui);
+                    snarl.show(&mut SdfNodeViewer { search_text: String::new(), eval_cache: std::collections::HashMap::new() }, &style, egui::Id::new("sdf_node_editor"), panel_ui);
                 } else if let Some(bone_id) = scene.selected_bone {
                     // Bone node graph
                     if !bone_id.is_root() {
@@ -455,7 +455,7 @@ pub fn editor_ui(
                         });
                         panel_ui.separator();
                         let snarl = ui.bone_graphs.entry(bone_id).or_insert_with(Snarl::new);
-                        snarl.show(&mut SdfNodeViewer { search_text: String::new() }, &style, egui::Id::new("bone_node_editor"), panel_ui);
+                        snarl.show(&mut SdfNodeViewer { search_text: String::new(), eval_cache: std::collections::HashMap::new() }, &style, egui::Id::new("bone_node_editor"), panel_ui);
                     } else {
                         panel_ui.label("Root bone has no node graph");
                     }
@@ -1159,7 +1159,7 @@ pub fn editor_ui(
         // Find the bone that owns this shape, to get its physics readings
         let bone_id = scene.scene.root_bone.find_shape(*shape_id).map(|(_, bid)| bid);
         let shape_physics = bone_id.and_then(|bid| scene.physics_readings.get(&bid));
-        let outputs = crate::nodes::evaluate_graph(snarl, elapsed, shape_physics);
+        let (outputs, _eval_cache) = crate::nodes::evaluate_graph(snarl, elapsed, shape_physics);
         if let Some((shape, _)) = scene.scene.root_bone.find_shape_mut(*shape_id) {
             let mut changed = false;
             if let Some(v) = outputs.tx { shape.transform.translation[0] = v; changed = true; }
@@ -1213,7 +1213,7 @@ pub fn editor_ui(
     for (bone_id, snarl) in &ui.bone_graphs {
         if snarl.node_ids().next().is_none() { continue; }
         let physics_reading = scene.physics_readings.get(bone_id);
-        let outputs = crate::nodes::evaluate_bone_graph(snarl, elapsed, physics_reading);
+        let (outputs, _eval_cache) = crate::nodes::evaluate_bone_graph(snarl, elapsed, physics_reading);
         // Collect force outputs for Avian
         let has_forces = outputs.force_x.is_some() || outputs.force_y.is_some()
             || outputs.force_z.is_some() || outputs.torque_x.is_some()

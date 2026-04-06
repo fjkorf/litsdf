@@ -2442,6 +2442,7 @@ Stratification = (outgoing + 1) / (incoming + 1). Low = foundational, high = lea
 | `core::physics` | 1 | 1 | 1.00 | core |
 | `render::lib` | 0 | 0 | 1.00 | core |
 | `editor::lib` | 0 | 0 | 1.00 | core |
+| `editor::nodes::expression` | 0 | 0 | 1.00 | core |
 | `editor::nodes::mod` | 0 | 0 | 1.00 | core |
 | `editor::nodes::presets` | 0 | 0 | 1.00 | core |
 | `editor::nodes::types` | 0 | 0 | 1.00 | core |

@@ -117,6 +117,10 @@ pub enum SdfNode {
     /// Outputs scalar speed (length of velocity vector).
     BoneSpeed,
 
+    // ── Expression ──
+    /// Math expression: type `a * 0.5 + sin(b)`. Variables become input pins.
+    Expression { text: String, var_count: u32 },
+
     // ── Output / Sink Nodes ──
     /// Shape property output. Collects final values to write into shape properties.
     ShapeOutput,
@@ -161,6 +165,7 @@ impl SdfNode {
             Self::BoneAngularVelocity => "Bone Angular Vel",
             Self::BoneWorldPosition => "Bone World Pos",
             Self::BoneSpeed => "Bone Speed",
+            Self::Expression { .. } => "Expression",
             Self::ShapeOutput => "Shape Output",
             Self::BoneOutput => "Bone Output",
         }
@@ -194,6 +199,7 @@ impl SdfNode {
             Self::IsColliding | Self::ContactNormal | Self::RaycastDown => 0,
             Self::StateVar { .. } => 2,     // Write (bool), Value
             Self::BoneVelocity | Self::BoneAngularVelocity | Self::BoneWorldPosition | Self::BoneSpeed => 0,
+            Self::Expression { var_count, .. } => *var_count as usize,
             Self::ShapeOutput => 27,
             Self::BoneOutput => 13,   // transform(7) + force(3) + torque(3)
         }
@@ -219,6 +225,7 @@ impl SdfNode {
             Self::Compare { .. } | Self::Gate | Self::BoolMath { .. } | Self::IsColliding | Self::StateVar { .. } => 1,
             Self::ContactNormal => 3,
             Self::RaycastDown => 4,  // Distance, Normal X, Y, Z
+            Self::Expression { .. } => 1,
             Self::BoneVelocity | Self::BoneAngularVelocity | Self::BoneWorldPosition => 3,
             Self::BoneSpeed => 1,
             Self::ShapeOutput | Self::BoneOutput => 0,
@@ -340,6 +347,7 @@ impl SdfNode {
                 26 => "Repeat Z",
                 _ => "?",
             },
+            Self::Expression { .. } => match index { 0 => "a", 1 => "b", 2 => "c", 3 => "d", 4 => "e", 5 => "f", _ => "?" },
             Self::Compare { .. } => match index { 0 => "A", 1 => "B", _ => "?" },
             Self::Gate => match index { 0 => "Value", 1 => "Control", _ => "?" },
             Self::BoolMath { .. } => match index { 0 => "A", 1 => "B", _ => "?" },
@@ -383,6 +391,7 @@ impl SdfNode {
                 2 => "Z",
                 _ => "?",
             },
+            Self::Expression { .. } => "Result",
             Self::Compare { .. } | Self::Gate | Self::BoolMath { .. } | Self::IsColliding | Self::StateVar { .. } => "Result",
             Self::ContactNormal => match index { 0 => "X", 1 => "Y", 2 => "Z", _ => "?" },
             Self::RaycastDown => match index { 0 => "Distance", 1 => "Normal X", 2 => "Normal Y", 3 => "Normal Z", _ => "?" },
@@ -487,6 +496,7 @@ impl SdfNode {
             Self::BoneAngularVelocity => "Bone angular velocity (X, Y, Z) from physics.",
             Self::BoneWorldPosition => "Bone world position (X, Y, Z) from physics.",
             Self::BoneSpeed => "Scalar speed (length of velocity vector).",
+            Self::Expression { .. } => "Math expression: type 'a * 0.5 + sin(b)'. Variables become input pins.",
             Self::ShapeOutput => "Writes values to shape properties (color, material, etc).",
             Self::BoneOutput => "Writes values to bone transform and physics forces.",
         }

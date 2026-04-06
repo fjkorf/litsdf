@@ -79,13 +79,15 @@ pub struct BoneOutputValues {
 /// Physics state readable by node graphs (passed from Avian via SdfSceneState).
 pub use litsdf_render::scene_sync::BonePhysicsReading;
 
-/// Evaluate a bone graph and return BoneOutput values.
-/// `physics` provides velocity/position readings from Avian for physics input nodes.
+/// Eval cache type — maps output pins to their computed values for debug display.
+pub type EvalCache = HashMap<OutPinId, PinValue>;
+
+/// Evaluate a bone graph and return BoneOutput values + eval cache for pin preview.
 pub fn evaluate_bone_graph(
     snarl: &Snarl<SdfNode>,
     time: f32,
     physics: Option<&BonePhysicsReading>,
-) -> BoneOutputValues {
+) -> (BoneOutputValues, EvalCache) {
     let mut cache: HashMap<OutPinId, PinValue> = HashMap::new();
     let mut result = BoneOutputValues::default();
 
@@ -120,12 +122,12 @@ pub fn evaluate_bone_graph(
         }
     }
 
-    result
+    (result, cache)
 }
 
 /// Evaluate a node graph and return the ShapeOutput values.
 /// `physics` provides the owning bone's physics readings for BoneSpeed/BoneVelocity nodes.
-pub fn evaluate_graph(snarl: &Snarl<SdfNode>, time: f32, physics: Option<&BonePhysicsReading>) -> ShapeOutputValues {
+pub fn evaluate_graph(snarl: &Snarl<SdfNode>, time: f32, physics: Option<&BonePhysicsReading>) -> (ShapeOutputValues, EvalCache) {
     let mut cache: HashMap<OutPinId, PinValue> = HashMap::new();
     let mut result = ShapeOutputValues::default();
 
@@ -175,7 +177,7 @@ pub fn evaluate_graph(snarl: &Snarl<SdfNode>, time: f32, physics: Option<&BonePh
         }
     }
 
-    result
+    (result, cache)
 }
 
 /// Recursively evaluate an output pin, caching results.
@@ -474,6 +476,18 @@ fn eval_node(
             }
         }
 
+        SdfNode::Expression { text, var_count } => {
+            match crate::nodes::expression::parse(text) {
+                Ok(parsed) => {
+                    let vars: Vec<f32> = (0..*var_count as usize)
+                        .map(|i| get_input_float(snarl, node_id, i, 0.0, time, physics, cache))
+                        .collect();
+                    PinValue::Float(crate::nodes::expression::evaluate(&parsed.ast, &vars))
+                }
+                Err(_) => PinValue::Float(0.0),
+            }
+        }
+
         SdfNode::StateVar { .. } => {
             // StateVar reads from the previous frame's stored value.
             // The write happens externally after eval (in editor_ui).
@@ -517,7 +531,7 @@ mod tests {
         let out = snarl.insert_node(egui::pos2(200.0, 0.0), SdfNode::ShapeOutput);
         snarl.connect(OutPinId { node: c, output: 0 }, InPinId { node: out, input: 1 }); // ty
 
-        let result = evaluate_graph(&snarl, 0.0, None);
+        let (result, _) = evaluate_graph(&snarl, 0.0, None);
         assert!(result.tx.is_none());
         assert_eq!(result.ty, Some(1.5));
     }
@@ -537,11 +551,11 @@ mod tests {
         snarl.connect(OutPinId { node: osc, output: 0 }, InPinId { node: out, input: 1 });
 
         // At time=0, sin(0 * 1.0 * TAU + 0) = sin(0) = 0
-        let result = evaluate_graph(&snarl, 0.0, None);
+        let (result, _) = evaluate_graph(&snarl, 0.0, None);
         assert!((result.ty.unwrap() - 0.0).abs() < 0.001);
 
         // At time=0.25, sin(0.25 * 1.0 * TAU) = sin(PI/2) = 1.0
-        let result = evaluate_graph(&snarl, 0.25, None);
+        let (result, _) = evaluate_graph(&snarl, 0.25, None);
         assert!((result.ty.unwrap() - 1.0).abs() < 0.001);
     }
 
@@ -557,7 +571,7 @@ mod tests {
         snarl.connect(OutPinId { node: b, output: 0 }, InPinId { node: mul, input: 1 });
         snarl.connect(OutPinId { node: mul, output: 0 }, InPinId { node: out, input: 6 }); // scale
 
-        let result = evaluate_graph(&snarl, 0.0, None);
+        let (result, _) = evaluate_graph(&snarl, 0.0, None);
         assert_eq!(result.scale, Some(6.0));
     }
 
@@ -566,7 +580,7 @@ mod tests {
         let mut snarl = Snarl::new();
         snarl.insert_node(egui::pos2(0.0, 0.0), SdfNode::ShapeOutput);
 
-        let result = evaluate_graph(&snarl, 0.0, None);
+        let (result, _) = evaluate_graph(&snarl, 0.0, None);
         assert!(result.tx.is_none());
         assert!(result.ty.is_none());
         assert!(result.scale.is_none());
