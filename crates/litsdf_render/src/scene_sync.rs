@@ -123,6 +123,10 @@ pub fn build_shader_params(scene_data: &SdfScene) -> SdfShaderParams {
     params.ao_intensity = s.ao_intensity;
     params.shadow_softness = s.shadow_softness;
     params.vignette_intensity = s.vignette_intensity;
+    params.ground_color = Vec3::from_array(s.ground_color);
+    params.sun_sharpness = s.sun_sharpness;
+    params.sun_brightness = s.sun_brightness;
+    params.show_environment = if s.show_environment { 1 } else { 0 };
 
     for (i, fs) in flat.iter().take(count).enumerate() {
         params.shapes[i] = ShaderShape {

@@ -64,7 +64,11 @@ struct SdfParams {
     ao_intensity: f32,
     shadow_softness: f32,
     vignette_intensity: f32,
-    _pad_s: f32,
+    ground_color: vec3<f32>,
+    sun_sharpness: f32,
+    sun_brightness: f32,
+    show_environment: u32,
+    _pad_s: vec2<f32>,
 };
 
 // Accumulated material result from scene evaluation
@@ -532,6 +536,17 @@ fn ray_march(ro: vec3<f32>, rd: vec3<f32>) -> f32 {
     return -1.0;
 }
 
+// --- Environment sky sampling ---
+fn sample_environment(dir: vec3<f32>) -> vec3<f32> {
+    let env = mix(
+        params.ground_color,
+        mix(params.fill_color * 1.5, params.fill_color * params.fill_intensity, smoothstep(0.0, 0.5, dir.y)),
+        smoothstep(-0.05, 0.05, dir.y)
+    );
+    let sun_spec = pow(max(dot(dir, normalize(params.light_dir)), 0.0), params.sun_sharpness) * params.sun_brightness;
+    return env + vec3<f32>(sun_spec, sun_spec, sun_spec);
+}
+
 // --- PBR BRDF functions ---
 
 fn distribution_ggx(n_dot_h: f32, roughness: f32) -> f32 {
@@ -574,6 +589,13 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     let t = ray_march(ray_origin, ray_dir);
 
     if t < 0.0 {
+        if params.show_environment == 1u {
+            let bg = sample_environment(ray_dir);
+            let screen_uv = (in.position.xy - view.viewport.xy) / view.viewport.zw;
+            let vig_uv = screen_uv * 2.0 - 1.0;
+            let vig = 1.0 - params.vignette_intensity * dot(vig_uv, vig_uv);
+            return vec4(pow(max(bg * vig, vec3<f32>(0.0, 0.0, 0.0)), vec3<f32>(1.0 / 2.2, 1.0 / 2.2, 1.0 / 2.2)), 1.0);
+        }
         discard;
     }
 
@@ -623,22 +645,13 @@ fn fragment(in: VertexOutput) -> @location(0) vec4<f32> {
     Lo += (back_kD * albedo / PI) * params.back_color * params.back_intensity * back_n_dot_l;
 
     // --- Ambient (gradient sky environment) ---
-    let env_nor = mix(
-        vec3<f32>(0.15, 0.12, 0.1),
-        mix(params.fill_color * 1.5, params.fill_color * params.fill_intensity, smoothstep(0.0, 0.5, nor.y)),
-        smoothstep(-0.05, 0.05, nor.y)
-    );
+    let env_nor = sample_environment(nor);
     let ambient_diffuse = env_nor * albedo;
 
     let reflect_dir = reflect(-V, nor);
-    let env_ref = mix(
-        vec3<f32>(0.15, 0.12, 0.1),
-        mix(params.fill_color * 1.5, params.fill_color * params.fill_intensity, smoothstep(0.0, 0.5, reflect_dir.y)),
-        smoothstep(-0.05, 0.05, reflect_dir.y)
-    );
-    let sun_spec = pow(max(dot(reflect_dir, key_dir), 0.0), 64.0) * 2.0;
+    let env_ref = sample_environment(reflect_dir);
     let F_ambient = fresnel_schlick_roughness(n_dot_v, f0, roughness);
-    let ambient_specular = (env_ref + vec3<f32>(sun_spec, sun_spec, sun_spec)) * F_ambient;
+    let ambient_specular = env_ref * F_ambient;
 
     let kD_ambient = (vec3<f32>(1.0, 1.0, 1.0) - F_ambient) * (1.0 - metallic);
     let ambient = kD_ambient * ambient_diffuse + ambient_specular;

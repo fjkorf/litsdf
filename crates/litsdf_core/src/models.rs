@@ -347,6 +347,15 @@ pub struct SceneSettings {
     // Post-processing
     #[serde(default = "default_vignette", skip_serializing_if = "is_default_vignette")]
     pub vignette_intensity: f32,
+    // Environment
+    #[serde(default = "default_ground_color", skip_serializing_if = "is_default_ground_color")]
+    pub ground_color: [f32; 3],
+    #[serde(default = "default_sun_sharpness", skip_serializing_if = "is_default_sun_sharpness")]
+    pub sun_sharpness: f32,
+    #[serde(default = "default_sun_brightness", skip_serializing_if = "is_default_sun_brightness")]
+    pub sun_brightness: f32,
+    #[serde(default = "default_true", skip_serializing_if = "is_true")]
+    pub show_environment: bool,
     // Physics
     #[serde(default = "default_gravity", skip_serializing_if = "is_default_gravity")]
     pub gravity: f32,
@@ -372,6 +381,12 @@ fn default_shadow_softness() -> f32 { 8.0 }
 fn is_default_shadow_softness(v: &f32) -> bool { *v == 8.0 }
 fn default_vignette() -> f32 { 0.3 }
 fn is_default_vignette(v: &f32) -> bool { *v == 0.3 }
+fn default_ground_color() -> [f32; 3] { [0.15, 0.12, 0.1] }
+fn is_default_ground_color(v: &[f32; 3]) -> bool { *v == [0.15, 0.12, 0.1] }
+fn default_sun_sharpness() -> f32 { 64.0 }
+fn is_default_sun_sharpness(v: &f32) -> bool { *v == 64.0 }
+fn default_sun_brightness() -> f32 { 2.0 }
+fn is_default_sun_brightness(v: &f32) -> bool { *v == 2.0 }
 fn default_gravity() -> f32 { -9.81 }
 fn is_default_gravity(v: &f32) -> bool { *v == -9.81 }
 
@@ -387,6 +402,10 @@ impl Default for SceneSettings {
             ao_intensity: default_ao_intensity(),
             shadow_softness: default_shadow_softness(),
             vignette_intensity: default_vignette(),
+            ground_color: default_ground_color(),
+            sun_sharpness: default_sun_sharpness(),
+            sun_brightness: default_sun_brightness(),
+            show_environment: true,
             gravity: default_gravity(),
             ground_plane: false,
         }

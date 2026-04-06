@@ -500,6 +500,8 @@ pub fn editor_ui(
             ui.md.state.shadow_softness = s.shadow_softness as f64;
             ui.md.state.vignette_intensity = s.vignette_intensity as f64;
             ui.md.state.gravity = s.gravity as f64;
+            ui.md.state.sun_sharpness = s.sun_sharpness as f64;
+            ui.md.state.sun_brightness = s.sun_brightness as f64;
         } else {
             let mut changed = false;
             macro_rules! sync_setting {
@@ -520,6 +522,8 @@ pub fn editor_ui(
             sync_setting!(shadow_softness, s.shadow_softness);
             sync_setting!(vignette_intensity, s.vignette_intensity);
             sync_setting!(gravity, s.gravity);
+            sync_setting!(sun_sharpness, s.sun_sharpness);
+            sync_setting!(sun_brightness, s.sun_brightness);
             if changed { scene.dirty = true; }
         }
     }

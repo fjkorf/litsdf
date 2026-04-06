@@ -47,7 +47,11 @@ pub struct SdfShaderParams {
     pub ao_intensity: f32,
     pub shadow_softness: f32,
     pub vignette_intensity: f32,
-    pub _pad_s: f32,
+    pub ground_color: Vec3,
+    pub sun_sharpness: f32,
+    pub sun_brightness: f32,
+    pub show_environment: u32,
+    pub _pad_s: Vec2,
 }
 
 #[derive(Clone, Copy, ShaderType)]
@@ -180,7 +184,11 @@ impl Default for SdfShaderParams {
             ao_intensity: 3.0,
             shadow_softness: 8.0,
             vignette_intensity: 0.3,
-            _pad_s: 0.0,
+            ground_color: Vec3::new(0.15, 0.12, 0.1),
+            sun_sharpness: 64.0,
+            sun_brightness: 2.0,
+            show_environment: 1,
+            _pad_s: Vec2::ZERO,
         }
     }
 }

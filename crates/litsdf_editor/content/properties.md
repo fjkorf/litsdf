@@ -192,6 +192,16 @@ widgets:
     max: 1.0
     decimals: 2
     label: "Damping"
+  sun_sharpness_cfg:
+    min: 4.0
+    max: 256.0
+    decimals: 0
+    label: "Sun sharpness"
+  sun_brightness_cfg:
+    min: 0.0
+    max: 10.0
+    decimals: 1
+    label: "Sun brightness"
 ---
 
 [textedit](scene_name){scene_name_cfg}
@@ -217,6 +227,12 @@ widgets:
 [slider](shadow_softness){shadow_softness_cfg}
 
 [slider](vignette_intensity){vignette_cfg}
+
+#### Environment
+
+[slider](sun_sharpness){sun_sharpness_cfg}
+
+[slider](sun_brightness){sun_brightness_cfg}
 
 #### Physics
 

@@ -100,6 +100,15 @@ pub struct SceneSettings {
     // Post-processing
     #[serde(default = "default_vignette", skip_serializing_if = "is_default_vignette")]
     pub vignette_intensity: f32,
+    // Environment
+    #[serde(default = "default_ground_color", skip_serializing_if = "is_default_ground_color")]
+    pub ground_color: [f32; 3],
+    #[serde(default = "default_sun_sharpness", skip_serializing_if = "is_default_sun_sharpness")]
+    pub sun_sharpness: f32,
+    #[serde(default = "default_sun_brightness", skip_serializing_if = "is_default_sun_brightness")]
+    pub sun_brightness: f32,
+    #[serde(default = "default_true", skip_serializing_if = "is_true")]
+    pub show_environment: bool,
     // Physics
     #[serde(default = "default_gravity", skip_serializing_if = "is_default_gravity")]
     pub gravity: f32,
@@ -109,7 +118,7 @@ pub struct SceneSettings {
 ```
 
 
-#### `SdfScene` (line 403)
+#### `SdfScene` (line 422)
 
 ```rust
 pub struct SdfScene {
@@ -127,7 +136,7 @@ pub struct SdfScene {
 ```
 
 
-#### `SceneInfo` (line 421)
+#### `SceneInfo` (line 440)
 
 ```rust
 pub struct SceneInfo {
@@ -139,7 +148,7 @@ pub struct SceneInfo {
 
 Summary information about a scene.
 
-#### `SceneInfo` (line 421)
+#### `SceneInfo` (line 440)
 
 ```rust
 pub struct SceneInfo {
@@ -150,7 +159,7 @@ pub struct SceneInfo {
 ```
 
 
-#### `SdfShape` (line 508)
+#### `SdfShape` (line 527)
 
 ```rust
 pub struct SdfShape {
@@ -171,7 +180,7 @@ pub struct SdfShape {
 ```
 
 
-#### `ShapeTransform` (line 542)
+#### `ShapeTransform` (line 561)
 
 ```rust
 pub struct ShapeTransform {
@@ -185,7 +194,7 @@ pub struct ShapeTransform {
 ```
 
 
-#### `ShapeMaterial` (line 566)
+#### `ShapeMaterial` (line 585)
 
 ```rust
 pub struct ShapeMaterial {
@@ -244,7 +253,7 @@ pub enum ColliderApprox {
 ```
 
 
-#### `SdfPrimitive` (line 525)
+#### `SdfPrimitive` (line 544)
 
 ```rust
 pub enum SdfPrimitive {
@@ -265,7 +274,7 @@ pub enum SdfPrimitive {
 ```
 
 
-#### `CombinationOp` (line 620)
+#### `CombinationOp` (line 639)
 
 ```rust
 pub enum CombinationOp {
@@ -281,7 +290,7 @@ pub enum CombinationOp {
 ```
 
 
-#### `ShapeModifier` (line 640)
+#### `ShapeModifier` (line 659)
 
 ```rust
 pub enum ShapeModifier {
@@ -529,14 +538,14 @@ Check if any bone in this subtree has physics mass > 0.
 ```
 
 
-#### `is_default` (line 397)
+#### `is_default` (line 416)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `new` (line 435)
+#### `new` (line 454)
 
 ```rust
     pub fn new(name: impl Into<String>) -> Self
@@ -544,21 +553,21 @@ Check if any bone in this subtree has physics mass > 0.
 
 Create an empty scene with a root bone and default light.
 
-#### `new` (line 435)
+#### `new` (line 454)
 
 ```rust
     pub fn new(name: impl Into<String>) -> Self
 ```
 
 
-#### `info` (line 446)
+#### `info` (line 465)
 
 ```rust
     pub fn info(&self) -> SceneInfo
 ```
 
 
-#### `tree_string` (line 455)
+#### `tree_string` (line 474)
 
 ```rust
     pub fn tree_string(&self) -> String
@@ -566,84 +575,84 @@ Create an empty scene with a root bone and default light.
 
 ASCII tree representation of the scene hierarchy.
 
-#### `tree_string` (line 455)
+#### `tree_string` (line 474)
 
 ```rust
     pub fn tree_string(&self) -> String
 ```
 
 
-#### `default_scene` (line 488)
+#### `default_scene` (line 507)
 
 ```rust
     pub fn default_scene() -> Self
 ```
 
 
-#### `is_default` (line 552)
+#### `is_default` (line 571)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `is_default` (line 596)
+#### `is_default` (line 615)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `is_default` (line 636)
+#### `is_default` (line 655)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `duplicate` (line 650)
+#### `duplicate` (line 669)
 
 ```rust
     pub fn duplicate(&self) -> Self
 ```
 
 
-#### `reset_transform` (line 657)
+#### `reset_transform` (line 676)
 
 ```rust
     pub fn reset_transform(&mut self)
 ```
 
 
-#### `clear_modifiers` (line 661)
+#### `clear_modifiers` (line 680)
 
 ```rust
     pub fn clear_modifiers(&mut self)
 ```
 
 
-#### `default_sphere` (line 665)
+#### `default_sphere` (line 684)
 
 ```rust
     pub fn default_sphere() -> Self
 ```
 
 
-#### `new` (line 678)
+#### `new` (line 697)
 
 ```rust
     pub fn new(name: impl Into<String>, primitive: SdfPrimitive) -> Self
 ```
 
 
-#### `label` (line 693)
+#### `label` (line 712)
 
 ```rust
     pub fn label(&self) -> &'static str
 ```
 
 
-#### `default_for` (line 711)
+#### `default_for` (line 730)
 
 ```rust
     pub fn default_for(name: &str) -> Self
@@ -995,12 +1004,16 @@ pub struct SdfShaderParams {
     pub ao_intensity: f32,
     pub shadow_softness: f32,
     pub vignette_intensity: f32,
-    pub _pad_s: f32,
+    pub ground_color: Vec3,
+    pub sun_sharpness: f32,
+    pub sun_brightness: f32,
+    pub show_environment: u32,
+    pub _pad_s: Vec2,
 }
 ```
 
 
-#### `ShaderShape` (line 54)
+#### `ShaderShape` (line 58)
 
 ```rust
 pub struct ShaderShape {
@@ -1200,20 +1213,23 @@ pub struct OrbitCamera {
     pub frame_target: Option<Vec3>,
     /// Set by editor to toggle orthographic projection.
     pub toggle_ortho: bool,
+    /// Viewport center offset [x, y] in normalized screen coords (-0.5 to 0.5).
+    /// Used to shift the rendered view to match the visible area between UI panels.
+    pub viewport_offset: [f32; 2],
 }
 ```
 
 
 ### Functions
 
-#### `setup_camera` (line 18)
+#### `setup_camera` (line 21)
 
 ```rust
 pub fn setup_camera(mut commands: Commands)
 ```
 
 
-#### `orbit_camera` (line 38)
+#### `orbit_camera` (line 42)
 
 ```rust
 pub fn orbit_camera(
@@ -1840,7 +1856,7 @@ pub struct SdfEditorPlugin;
 
 ### Structs
 
-#### `EditorUi` (line 35)
+#### `EditorUi` (line 37)
 
 ```rust
 pub struct EditorUi {
@@ -1880,7 +1896,7 @@ pub struct EditorUi {
 ```
 
 
-#### `TreePanelActions` (line 108)
+#### `TreePanelActions` (line 110)
 
 ```rust
 struct TreePanelActions {
@@ -1898,7 +1914,7 @@ Actions collected from the left panel to apply after rendering.
 
 ### Functions
 
-#### `editor_ui` (line 122)
+#### `editor_ui` (line 124)
 
 ```rust
 pub fn editor_ui(
@@ -1908,7 +1924,7 @@ pub fn editor_ui(
     mut undo_history: ResMut<crate::undo::UndoHistory>,
     drag_state: Res<litsdf_render::picking::DragState>,
     mut gizmo_mode: ResMut<litsdf_render::picking::GizmoMode>,
-    mut camera_query: Query<&mut OrbitCamera>,
+    mut camera_query: Query<(&mut OrbitCamera, &mut Camera)>,
     time: Res<Time>,
     mut pending_graphs: Option<ResMut<crate::demos::PendingGraphs>>,
 )
@@ -2447,6 +2463,7 @@ Stratification = (outgoing + 1) / (incoming + 1). Low = foundational, high = lea
 | `editor::nodes::presets` | 0 | 0 | 1.00 | core |
 | `editor::nodes::types` | 0 | 0 | 1.00 | core |
 | `editor::nodes::viewer` | 0 | 0 | 1.00 | core |
+| `editor::ui::panel_tests` | 0 | 0 | 1.00 | core |
 | `editor::ui::shortcuts` | 0 | 0 | 1.00 | core |
 | `core::sdf` | 1 | 0 | 2.00 | connector |
 | `editor::demos::abstract_sculpture` | 1 | 0 | 2.00 | connector |
