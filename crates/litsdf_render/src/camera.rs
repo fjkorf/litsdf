@@ -13,6 +13,9 @@ pub struct OrbitCamera {
     pub frame_target: Option<Vec3>,
     /// Set by editor to toggle orthographic projection.
     pub toggle_ortho: bool,
+    /// Viewport center offset [x, y] in normalized screen coords (-0.5 to 0.5).
+    /// Used to shift the rendered view to match the visible area between UI panels.
+    pub viewport_offset: [f32; 2],
 }
 
 pub fn setup_camera(mut commands: Commands) {
@@ -26,6 +29,7 @@ pub fn setup_camera(mut commands: Commands) {
             target: Vec3::new(0.0, 0.8, 0.0),
             frame_target: None,
             toggle_ortho: false,
+            viewport_offset: [0.0, 0.0],
         },
         AmbientLight {
             color: Color::WHITE,
@@ -113,7 +117,19 @@ pub fn orbit_camera(
 
     // Apply orbit to transform
     let rot = Quat::from_euler(EulerRot::YXZ, orbit.yaw, orbit.pitch, 0.0);
-    let offset = rot * Vec3::new(0.0, 0.0, orbit.distance);
-    transform.translation = orbit.target + offset;
+    let cam_offset = rot * Vec3::new(0.0, 0.0, orbit.distance);
+    transform.translation = orbit.target + cam_offset;
     transform.look_at(orbit.target, Vec3::Y);
+
+    // Shift camera laterally to keep the target centered in the visible viewport area.
+    // viewport_offset is [-0.5, 0.5] where (0,0) = panels evenly distributed.
+    let vp = orbit.viewport_offset;
+    if vp[0].abs() > 0.001 || vp[1].abs() > 0.001 {
+        let right = transform.right();
+        let up = transform.up();
+        // Scale by distance for consistent shift regardless of zoom level
+        let shift = right * (-vp[0] * orbit.distance * 2.0)
+                  + up * (vp[1] * orbit.distance * 2.0);
+        transform.translation += shift;
+    }
 }

@@ -126,7 +126,7 @@ pub fn editor_ui(
     mut undo_history: ResMut<crate::undo::UndoHistory>,
     drag_state: Res<litsdf_render::picking::DragState>,
     mut gizmo_mode: ResMut<litsdf_render::picking::GizmoMode>,
-    mut camera_query: Query<&mut OrbitCamera>,
+    mut camera_query: Query<(&mut OrbitCamera, &mut Camera)>,
     time: Res<Time>,
     mut pending_graphs: Option<ResMut<crate::demos::PendingGraphs>>,
 ) {
@@ -659,6 +659,20 @@ pub fn editor_ui(
         if !open { ui.show_description = false; }
     }
 
+    // ── Store available viewport rect for orbit camera center offset ──
+    // Instead of setting Camera.viewport (which causes wgpu scissor_rect panics),
+    // we compute the viewport center offset and pass it to the orbit camera system.
+    {
+        let avail = ctx.available_rect();
+        let screen = ctx.screen_rect();
+        // Offset = center of available area - center of full screen (in NDC-like coords)
+        let offset_x = (avail.center().x - screen.center().x) / screen.width();
+        let offset_y = (avail.center().y - screen.center().y) / screen.height();
+        if let Ok((mut cam, _)) = camera_query.single_mut() {
+            cam.viewport_offset = [offset_x, offset_y];
+        }
+    }
+
     // ── Snapshot for undo before mutations ──
     let scene_before = scene.scene.clone();
 
@@ -754,13 +768,13 @@ pub fn editor_ui(
         }
         ShortcutAction::FrameSelection => {
             if let Some(pos) = picking::get_selected_world_pos(&scene) {
-                if let Ok(mut cam) = camera_query.single_mut() {
+                if let Ok((mut cam, _)) = camera_query.single_mut() {
                     cam.frame_target = Some(pos);
                 }
             }
         }
         ShortcutAction::ResetCamera => {
-            if let Ok(mut cam) = camera_query.single_mut() {
+            if let Ok((mut cam, _)) = camera_query.single_mut() {
                 cam.target = Vec3::new(0.0, 0.8, 0.0);
                 cam.distance = 5.0;
                 cam.yaw = 0.0;
@@ -814,25 +828,25 @@ pub fn editor_ui(
             bone_changed = true;
         }
         ShortcutAction::CameraFront => {
-            if let Ok(mut cam) = camera_query.single_mut() {
+            if let Ok((mut cam, _)) = camera_query.single_mut() {
                 cam.yaw = 0.0;
                 cam.pitch = 0.0;
             }
         }
         ShortcutAction::CameraRight => {
-            if let Ok(mut cam) = camera_query.single_mut() {
+            if let Ok((mut cam, _)) = camera_query.single_mut() {
                 cam.yaw = -std::f32::consts::FRAC_PI_2;
                 cam.pitch = 0.0;
             }
         }
         ShortcutAction::CameraTop => {
-            if let Ok(mut cam) = camera_query.single_mut() {
+            if let Ok((mut cam, _)) = camera_query.single_mut() {
                 cam.yaw = 0.0;
                 cam.pitch = -std::f32::consts::FRAC_PI_2 + 0.001; // slight offset to avoid gimbal lock
             }
         }
         ShortcutAction::ToggleOrtho => {
-            if let Ok(mut cam) = camera_query.single_mut() {
+            if let Ok((mut cam, _)) = camera_query.single_mut() {
                 cam.toggle_ortho = true;
             }
         }
