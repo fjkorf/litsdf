@@ -1856,7 +1856,7 @@ pub struct SdfEditorPlugin;
 
 ### Structs
 
-#### `EditorUi` (line 37)
+#### `EditorUi` (line 38)
 
 ```rust
 pub struct EditorUi {
@@ -1896,7 +1896,7 @@ pub struct EditorUi {
 ```
 
 
-#### `TreePanelActions` (line 110)
+#### `TreePanelActions` (line 111)
 
 ```rust
 struct TreePanelActions {
@@ -1914,7 +1914,7 @@ Actions collected from the left panel to apply after rendering.
 
 ### Functions
 
-#### `editor_ui` (line 124)
+#### `editor_ui` (line 125)
 
 ```rust
 pub fn editor_ui(

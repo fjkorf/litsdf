@@ -30,6 +30,7 @@ pub mod app {
         "content/add_shape.md",
         "content/file_browser.md",
         "content/yaml_editor.md",
+        "content/scene_settings.md",
     }
 }
 
@@ -179,6 +180,9 @@ pub fn editor_ui(
     if ctx.input_mut(|i| i.consume_shortcut(&shortcuts::PASTE)) {
         shortcut_action = ShortcutAction::Paste;
     }
+    if ctx.input_mut(|i| i.consume_shortcut(&shortcuts::SCENE_SETTINGS)) {
+        shortcut_action = ShortcutAction::ToggleSceneSettings;
+    }
     // Single-key shortcuts only fire when no text widget has focus
     if !ctx.wants_keyboard_input() {
         if ctx.input_mut(|i| i.consume_key(egui::Modifiers::NONE, egui::Key::Delete))
@@ -313,6 +317,11 @@ pub fn editor_ui(
                     scene.show_bone_gizmos = gizmos;
                 }
                 ui.checkbox(&mut ui_show_node_editor, "Node Editor");
+                ui.separator();
+                if ui.add(egui::Button::new("Scene Settings").shortcut_text(ctx.format_shortcut(&shortcuts::SCENE_SETTINGS))).clicked() {
+                    shortcut_action = ShortcutAction::ToggleSceneSettings;
+                    ui.close();
+                }
                 ui.separator();
                 ui.checkbox(&mut ui_animation_enabled, "Animation");
                 ui.checkbox(&mut ui_physics_enabled, "Physics");
@@ -502,6 +511,18 @@ pub fn editor_ui(
             ui.md.state.gravity = s.gravity as f64;
             ui.md.state.sun_sharpness = s.sun_sharpness as f64;
             ui.md.state.sun_brightness = s.sun_brightness as f64;
+            ui.md.state.fill_color = [
+                (s.fill_color[0] * 255.0) as u8,
+                (s.fill_color[1] * 255.0) as u8,
+                (s.fill_color[2] * 255.0) as u8,
+                255,
+            ];
+            ui.md.state.ground_color = [
+                (s.ground_color[0] * 255.0) as u8,
+                (s.ground_color[1] * 255.0) as u8,
+                (s.ground_color[2] * 255.0) as u8,
+                255,
+            ];
         } else {
             let mut changed = false;
             macro_rules! sync_setting {
@@ -524,6 +545,30 @@ pub fn editor_ui(
             sync_setting!(gravity, s.gravity);
             sync_setting!(sun_sharpness, s.sun_sharpness);
             sync_setting!(sun_brightness, s.sun_brightness);
+            // Color settings (bidirectional, u8↔f32 conversion)
+            macro_rules! sync_color {
+                ($ui_field:ident, $model_field:expr) => {
+                    let ui_c = ui.md.state.$ui_field;
+                    let model_c = [
+                        ($model_field[0] * 255.0) as u8,
+                        ($model_field[1] * 255.0) as u8,
+                        ($model_field[2] * 255.0) as u8,
+                        255u8,
+                    ];
+                    if ui_c != model_c && ui_c != [0, 0, 0, 0] {
+                        $model_field = [
+                            ui_c[0] as f32 / 255.0,
+                            ui_c[1] as f32 / 255.0,
+                            ui_c[2] as f32 / 255.0,
+                        ];
+                        changed = true;
+                    } else {
+                        ui.md.state.$ui_field = model_c;
+                    }
+                };
+            }
+            sync_color!(fill_color, s.fill_color);
+            sync_color!(ground_color, s.ground_color);
             if changed { scene.dirty = true; }
         }
     }
@@ -591,6 +636,20 @@ pub fn editor_ui(
         ui.md.state.show_yaml_editor = open;
     }
 
+    // ── Scene Settings window ──
+    {
+        let mut open = ui.md.state.show_scene_settings;
+        egui::Window::new("Scene Settings")
+            .default_width(320.0)
+            .open(&mut open)
+            .show(&ctx, |wui| {
+                egui::ScrollArea::vertical().show(wui, |wui| {
+                    app::render_scene_settings(wui, &mut ui.md.state);
+                });
+            });
+        ui.md.state.show_scene_settings = open;
+    }
+
     // ── Help overlay ──
     if ui.show_help {
         let mut open = true;
@@ -612,6 +671,7 @@ pub fn editor_ui(
                         ("Cmd+C / Cmd+V", "Copy / Paste"),
                         ("Delete", "Delete selected"),
                         ("Escape", "Deselect"),
+                        ("Cmd+,", "Scene Settings"),
                         ("?", "Toggle this help"),
                         ("", ""),
                         ("Viewport", ""),
@@ -894,6 +954,9 @@ pub fn editor_ui(
                 scene.scene.root_bone = rest;
                 scene.dirty = true;
             }
+        }
+        ShortcutAction::ToggleSceneSettings => {
+            ui.md.state.show_scene_settings = !ui.md.state.show_scene_settings;
         }
         ShortcutAction::None => {}
     }
@@ -1314,6 +1377,7 @@ enum ShortcutAction {
     CameraFront, CameraRight, CameraTop, ToggleOrtho,
     AddBone, AddShape(String),
     TogglePlayback, ResetPlayback,
+    ToggleSceneSettings,
 }
 
 fn find_parent_of_bone(bone: &litsdf_core::models::SdfBone, target: BoneId) -> Option<BoneId> {
