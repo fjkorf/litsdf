@@ -1069,6 +1069,13 @@ pub struct BonePhysicsReading {
     pub position: [f32; 3],
     pub linear_velocity: [f32; 3],
     pub angular_velocity: [f32; 3],
+    // Collision data
+    pub is_colliding: bool,
+    pub contact_count: u32,
+    pub contact_normal: [f32; 3],
+    // Raycast data (downward ray)
+    pub ray_hit_distance: f32, // f32::MAX if no hit
+    pub ray_hit_normal: [f32; 3],
 }
 ```
 
@@ -1081,11 +1088,18 @@ pub struct BonePhysicsReading {
     pub position: [f32; 3],
     pub linear_velocity: [f32; 3],
     pub angular_velocity: [f32; 3],
+    // Collision data
+    pub is_colliding: bool,
+    pub contact_count: u32,
+    pub contact_normal: [f32; 3],
+    // Raycast data (downward ray)
+    pub ray_hit_distance: f32, // f32::MAX if no hit
+    pub ray_hit_normal: [f32; 3],
 }
 ```
 
 
-#### `BoneForceOutputs` (line 18)
+#### `BoneForceOutputs` (line 25)
 
 ```rust
 pub struct BoneForceOutputs {
@@ -1096,7 +1110,7 @@ pub struct BoneForceOutputs {
 
 Force/torque outputs from node graphs to apply to Avian entities.
 
-#### `BoneForceOutputs` (line 18)
+#### `BoneForceOutputs` (line 25)
 
 ```rust
 pub struct BoneForceOutputs {
@@ -1106,7 +1120,7 @@ pub struct BoneForceOutputs {
 ```
 
 
-#### `SdfSceneState` (line 24)
+#### `SdfSceneState` (line 31)
 
 ```rust
 pub struct SdfSceneState {
@@ -1124,7 +1138,7 @@ pub struct SdfSceneState {
 ```
 
 
-#### `SdfBoundingEntity` (line 55)
+#### `SdfBoundingEntity` (line 62)
 
 ```rust
 pub struct SdfBoundingEntity;
@@ -1133,7 +1147,7 @@ pub struct SdfBoundingEntity;
 
 ### Functions
 
-#### `setup_initial_scene` (line 57)
+#### `setup_initial_scene` (line 64)
 
 ```rust
 pub fn setup_initial_scene(
@@ -1145,7 +1159,7 @@ pub fn setup_initial_scene(
 ```
 
 
-#### `sync_scene_to_shader` (line 71)
+#### `sync_scene_to_shader` (line 78)
 
 ```rust
 pub fn sync_scene_to_shader(
@@ -1157,7 +1171,7 @@ pub fn sync_scene_to_shader(
 ```
 
 
-#### `build_shader_params` (line 99)
+#### `build_shader_params` (line 106)
 
 ```rust
 pub fn build_shader_params(scene_data: &SdfScene) -> SdfShaderParams
@@ -1896,6 +1910,7 @@ pub fn editor_ui(
     mut gizmo_mode: ResMut<litsdf_render::picking::GizmoMode>,
     mut camera_query: Query<&mut OrbitCamera>,
     time: Res<Time>,
+    mut pending_graphs: Option<ResMut<crate::demos::PendingGraphs>>,
 )
 ```
 
@@ -2417,7 +2432,7 @@ Stratification = (outgoing + 1) / (incoming + 1). Low = foundational, high = lea
 
 | Module | Out | In | Strat | Role |
 |--------|-----|-----|-------|------|
-| `core::models` | 0 | 34 | 0.03 | foundation |
+| `core::models` | 0 | 36 | 0.03 | foundation |
 | `render::camera` | 0 | 3 | 0.25 | foundation |
 | `core::scene` | 1 | 5 | 0.33 | foundation |
 | `render::scene_sync` | 3 | 11 | 0.33 | foundation |
@@ -2437,6 +2452,7 @@ Stratification = (outgoing + 1) / (incoming + 1). Low = foundational, high = lea
 | `editor::demos::boolean_sampler` | 1 | 0 | 2.00 | connector |
 | `editor::demos::damping_lab` | 1 | 0 | 2.00 | connector |
 | `editor::demos::hanging_chain` | 1 | 0 | 2.00 | connector |
+| `editor::demos::lemmings` | 1 | 0 | 2.00 | connector |
 | `editor::demos::mod` | 1 | 0 | 2.00 | connector |
 | `editor::demos::modifier_parade` | 1 | 0 | 2.00 | connector |
 | `editor::demos::mushroom_garden` | 1 | 0 | 2.00 | connector |
@@ -2444,6 +2460,7 @@ Stratification = (outgoing + 1) / (incoming + 1). Low = foundational, high = lea
 | `editor::demos::primitive_gallery` | 1 | 0 | 2.00 | connector |
 | `editor::demos::robot_friend` | 1 | 0 | 2.00 | connector |
 | `editor::demos::speed_glow` | 1 | 0 | 2.00 | connector |
+| `editor::demos::walker` | 1 | 0 | 2.00 | connector |
 | `editor::demos::wave_force` | 1 | 0 | 2.00 | connector |
 | `editor::nodes::eval` | 1 | 0 | 2.00 | connector |
 | `editor::project` | 1 | 0 | 2.00 | connector |

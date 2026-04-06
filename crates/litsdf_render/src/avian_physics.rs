@@ -41,11 +41,23 @@ impl Plugin for SdfPhysicsPlugin {
             .add_systems(Update, sync_physics_pause)
             .add_systems(Update, check_and_spawn)
             // Avian runs in FixedPostUpdate — sync systems run there too
-            .add_systems(FixedPostUpdate, apply_node_forces.before(PhysicsSystems::Prepare))
-            .add_systems(FixedPostUpdate, sync_kinematic_to_avian.before(PhysicsSystems::Prepare))
-            .add_systems(FixedPostUpdate, sync_avian_to_bones.after(PhysicsSystems::Writeback))
-            .add_systems(FixedPostUpdate, collect_physics_readings.after(PhysicsSystems::Writeback));
+            .add_systems(FixedPostUpdate, apply_node_forces
+                .before(PhysicsSystems::Prepare).run_if(physics_active))
+            .add_systems(FixedPostUpdate, sync_kinematic_to_avian
+                .before(PhysicsSystems::Prepare).run_if(physics_active))
+            .add_systems(FixedPostUpdate, sync_avian_to_bones
+                .after(PhysicsSystems::Writeback).run_if(physics_active))
+            .add_systems(FixedPostUpdate, collect_physics_readings
+                .after(PhysicsSystems::Writeback).run_if(avian_enabled));
     }
+}
+
+fn avian_enabled(scene: Res<SdfSceneState>) -> bool {
+    scene.use_avian
+}
+
+fn physics_active(scene: Res<SdfSceneState>) -> bool {
+    scene.use_avian && !scene.physics_paused
 }
 
 /// Pause/unpause Avian's physics time based on scene state.
@@ -171,6 +183,8 @@ fn spawn_bone_entity(
             LinearDamping(damping_to_avian(bone.physics.damping)),
             AngularDamping(damping_to_avian(bone.physics.damping)),
             SleepingDisabled,
+            // Downward raycast for ground detection
+            RayCaster::new(Vec3::ZERO, Dir3::NEG_Y).with_max_distance(10.0),
             transform,
         )).id();
         state.entity_map.insert(bone.id, entity);
@@ -249,7 +263,7 @@ fn sync_kinematic_to_avian(
     mut positions: Query<&mut Position>,
     mut rotations: Query<&mut Rotation>,
 ) {
-    if !scene.use_avian || state.entity_map.is_empty() || scene.physics_paused { return; }
+    if state.entity_map.is_empty() { return; }
 
     let world_transforms = compute_bone_world_transforms(
         &scene.scene.root_bone,
@@ -299,7 +313,7 @@ fn sync_avian_to_bones(
     positions: Query<&Position>,
     rotations: Query<&Rotation>,
 ) {
-    if !scene.use_avian || state.entity_map.is_empty() || scene.physics_paused { return; }
+    if state.entity_map.is_empty() { return; }
 
     // Build world transforms from Avian entities — these are authoritative
     // and don't suffer from euler round-trip error.
@@ -372,12 +386,17 @@ fn collect_physics_readings(
     positions: Query<&Position>,
     linear_vels: Query<&LinearVelocity>,
     angular_vels: Query<&AngularVelocity>,
+    colliding_entities: Query<&CollidingEntities>,
+    collisions: Collisions,
+    ray_hits: Query<&RayHits>,
 ) {
     scene.physics_readings.clear();
-    if !scene.use_avian { return; }
 
     for (bone_id, &entity) in &state.entity_map {
-        let mut reading = crate::scene_sync::BonePhysicsReading::default();
+        let mut reading = crate::scene_sync::BonePhysicsReading {
+            ray_hit_distance: f32::MAX,
+            ..Default::default()
+        };
         if let Ok(pos) = positions.get(entity) {
             let p: Vec3 = pos.0.into();
             reading.position = [p.x, p.y, p.z];
@@ -390,6 +409,29 @@ fn collect_physics_readings(
             let a: Vec3 = avel.0.into();
             reading.angular_velocity = [a.x, a.y, a.z];
         }
+        // Collision data
+        if let Ok(ce) = colliding_entities.get(entity) {
+            reading.is_colliding = !ce.0.is_empty();
+            reading.contact_count = ce.0.len() as u32;
+        }
+        // Contact normal (from first touching contact pair)
+        for pair in collisions.collisions_with(entity) {
+            if let Some(manifold) = pair.manifolds.first() {
+                let n: Vec3 = manifold.normal.into();
+                // Ensure normal points away from this entity
+                let sign = if pair.body1 == Some(entity) { 1.0 } else { -1.0 };
+                reading.contact_normal = [n.x * sign, n.y * sign, n.z * sign];
+                break;
+            }
+        }
+        // Raycast data (downward ray attached to dynamic entities)
+        if let Ok(hits) = ray_hits.get(entity) {
+            if let Some(hit) = hits.iter_sorted().next() {
+                reading.ray_hit_distance = hit.distance;
+                let n: Vec3 = hit.normal.into();
+                reading.ray_hit_normal = [n.x, n.y, n.z];
+            }
+        }
         scene.physics_readings.insert(*bone_id, reading);
     }
 }
@@ -401,11 +443,9 @@ fn apply_node_forces(
     mut linear_vels: Query<&mut LinearVelocity>,
     mut angular_vels: Query<&mut AngularVelocity>,
     masses: Query<&Mass>,
+    physics_time: Res<Time<Physics>>,
 ) {
-    if !scene.use_avian || scene.physics_paused { return; }
-
-    // Apply forces as velocity changes (F=ma → dv = F/m * dt, approximate with 1/60)
-    let dt = 1.0 / 60.0f32;
+    let dt = physics_time.delta_secs().max(1e-6);
     for (bone_id, outputs) in &scene.force_outputs {
         if let Some(&entity) = state.entity_map.get(bone_id) {
             let f = Vec3::new(outputs.force[0], outputs.force[1], outputs.force[2]);

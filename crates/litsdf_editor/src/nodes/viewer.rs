@@ -37,9 +37,12 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
                 Color32::from_rgb(0x3a, 0x3a, 0x7a), // blue — math
             SdfNode::Vec3Compose | SdfNode::Vec3Decompose | SdfNode::CosinePalette =>
                 Color32::from_rgb(0x6a, 0x4a, 0x2a), // amber — vec3/color
-            SdfNode::BoneVelocity | SdfNode::BoneAngularVelocity
+            SdfNode::Compare { .. } | SdfNode::Gate | SdfNode::BoolMath { .. } | SdfNode::StateVar { .. } =>
+                Color32::from_rgb(0x6a, 0x2a, 0x6a), // purple — logic
+            SdfNode::IsColliding | SdfNode::ContactNormal | SdfNode::RaycastDown
+            | SdfNode::BoneVelocity | SdfNode::BoneAngularVelocity
             | SdfNode::BoneWorldPosition | SdfNode::BoneSpeed =>
-                Color32::from_rgb(0x8a, 0x5a, 0x1a), // amber — physics input
+                Color32::from_rgb(0x8a, 0x5a, 0x1a), // amber — physics/sensing
             SdfNode::ShapeOutput | SdfNode::BoneOutput =>
                 Color32::from_rgb(0x7a, 0x3a, 0x2a), // red-orange — output
         };
@@ -317,7 +320,53 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
 
         ui.separator();
 
-        ui.menu_button("Physics", |ui| {
+        ui.menu_button("Logic", |ui| {
+            if ui.button("Compare (>)").clicked() {
+                snarl.insert_node(pos, SdfNode::Compare { mode: 0 });
+                ui.close();
+            }
+            if ui.button("Compare (<)").clicked() {
+                snarl.insert_node(pos, SdfNode::Compare { mode: 1 });
+                ui.close();
+            }
+            if ui.button("Compare (==)").clicked() {
+                snarl.insert_node(pos, SdfNode::Compare { mode: 2 });
+                ui.close();
+            }
+            if ui.button("Gate").clicked() {
+                snarl.insert_node(pos, SdfNode::Gate);
+                ui.close();
+            }
+            if ui.button("Bool Math (AND)").clicked() {
+                snarl.insert_node(pos, SdfNode::BoolMath { op: 0 });
+                ui.close();
+            }
+            if ui.button("Bool Math (OR)").clicked() {
+                snarl.insert_node(pos, SdfNode::BoolMath { op: 1 });
+                ui.close();
+            }
+            if ui.button("Bool Math (NOT)").clicked() {
+                snarl.insert_node(pos, SdfNode::BoolMath { op: 2 });
+                ui.close();
+            }
+            if ui.button("State Variable").clicked() {
+                snarl.insert_node(pos, SdfNode::StateVar { index: 0 });
+                ui.close();
+            }
+        });
+        ui.menu_button("Sensing", |ui| {
+            if ui.button("Is Colliding").clicked() {
+                snarl.insert_node(pos, SdfNode::IsColliding);
+                ui.close();
+            }
+            if ui.button("Contact Normal").clicked() {
+                snarl.insert_node(pos, SdfNode::ContactNormal);
+                ui.close();
+            }
+            if ui.button("Raycast Down").clicked() {
+                snarl.insert_node(pos, SdfNode::RaycastDown);
+                ui.close();
+            }
             if ui.button("Bone Velocity").clicked() {
                 snarl.insert_node(pos, SdfNode::BoneVelocity);
                 ui.close();

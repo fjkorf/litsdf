@@ -11,6 +11,13 @@ pub struct BonePhysicsReading {
     pub position: [f32; 3],
     pub linear_velocity: [f32; 3],
     pub angular_velocity: [f32; 3],
+    // Collision data
+    pub is_colliding: bool,
+    pub contact_count: u32,
+    pub contact_normal: [f32; 3],
+    // Raycast data (downward ray)
+    pub ray_hit_distance: f32, // f32::MAX if no hit
+    pub ray_hit_normal: [f32; 3],
 }
 
 /// Force/torque outputs from node graphs to apply to Avian entities.

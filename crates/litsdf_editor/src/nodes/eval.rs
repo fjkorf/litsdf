@@ -418,6 +418,69 @@ fn eval_node(
             PinValue::Float(a + (b - a) * f)
         }
 
+        SdfNode::Compare { mode } => {
+            let a = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let b = get_input_float(snarl, node_id, 1, 0.0, time, physics, cache);
+            let result = match mode {
+                0 => a > b,      // GT
+                1 => a < b,      // LT
+                2 => (a - b).abs() < 0.001, // EQ
+                3 => a >= b,     // GTE
+                4 => a <= b,     // LTE
+                _ => false,
+            };
+            PinValue::Float(if result { 1.0 } else { 0.0 })
+        }
+
+        SdfNode::Gate => {
+            let value = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let control = get_input_float(snarl, node_id, 1, 0.0, time, physics, cache);
+            PinValue::Float(if control > 0.5 { value } else { 0.0 })
+        }
+
+        SdfNode::BoolMath { op } => {
+            let a = get_input_float(snarl, node_id, 0, 0.0, time, physics, cache);
+            let b = get_input_float(snarl, node_id, 1, 0.0, time, physics, cache);
+            let a_bool = a > 0.5;
+            let b_bool = b > 0.5;
+            let result = match op {
+                0 => a_bool && b_bool, // AND
+                1 => a_bool || b_bool, // OR
+                2 => !a_bool,          // NOT (ignores B)
+                _ => false,
+            };
+            PinValue::Float(if result { 1.0 } else { 0.0 })
+        }
+
+        SdfNode::IsColliding => {
+            let colliding = physics.map(|p| p.is_colliding).unwrap_or(false);
+            PinValue::Float(if colliding { 1.0 } else { 0.0 })
+        }
+
+        SdfNode::ContactNormal => {
+            let n = physics.map(|p| p.contact_normal).unwrap_or([0.0; 3]);
+            match output_idx { 0 => PinValue::Float(n[0]), 1 => PinValue::Float(n[1]), 2 => PinValue::Float(n[2]), _ => PinValue::Float(0.0) }
+        }
+
+        SdfNode::RaycastDown => {
+            let dist = physics.map(|p| p.ray_hit_distance).unwrap_or(f32::MAX);
+            let n = physics.map(|p| p.ray_hit_normal).unwrap_or([0.0; 3]);
+            match output_idx {
+                0 => PinValue::Float(dist),
+                1 => PinValue::Float(n[0]),
+                2 => PinValue::Float(n[1]),
+                3 => PinValue::Float(n[2]),
+                _ => PinValue::Float(0.0),
+            }
+        }
+
+        SdfNode::StateVar { .. } => {
+            // StateVar reads from the previous frame's stored value.
+            // The write happens externally after eval (in editor_ui).
+            // During eval, we just return 0.0 — the editor will populate the actual value.
+            PinValue::Float(0.0)
+        }
+
         SdfNode::BoneVelocity => {
             let v = physics.map(|p| p.linear_velocity).unwrap_or([0.0; 3]);
             match output_idx { 0 => PinValue::Float(v[0]), 1 => PinValue::Float(v[1]), 2 => PinValue::Float(v[2]), _ => PinValue::Float(0.0) }

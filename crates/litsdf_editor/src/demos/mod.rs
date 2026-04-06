@@ -9,6 +9,8 @@ mod pendulum;
 mod damping_lab;
 mod speed_glow;
 mod wave_force;
+mod walker;
+mod lemmings;
 
 use std::collections::HashMap;
 use egui_snarl::Snarl;
@@ -41,6 +43,8 @@ pub enum DemoScene {
     DampingLab,
     SpeedGlow,
     WaveForce,
+    Walker,
+    Lemmings,
 }
 
 impl DemoScene {
@@ -57,6 +61,8 @@ impl DemoScene {
             Self::DampingLab => "Damping Lab",
             Self::SpeedGlow => "Speed Glow",
             Self::WaveForce => "Wave Force",
+            Self::Walker => "Walker",
+            Self::Lemmings => "Lemmings",
         }
     }
 
@@ -73,6 +79,8 @@ impl DemoScene {
             Self::DampingLab,
             Self::SpeedGlow,
             Self::WaveForce,
+            Self::Walker,
+            Self::Lemmings,
         ]
     }
 }
@@ -90,6 +98,8 @@ pub fn load_demo(demo: DemoScene) -> DemoResult {
         DemoScene::DampingLab => damping_lab::create(),
         DemoScene::SpeedGlow => speed_glow::create(),
         DemoScene::WaveForce => wave_force::create(),
+        DemoScene::Walker => walker::create(),
+        DemoScene::Lemmings => lemmings::create(),
     }
 }
 

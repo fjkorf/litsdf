@@ -35,6 +35,8 @@ fn main() {
             "damping" => litsdf_editor::demos::DemoScene::DampingLab,
             "speed" | "glow" => litsdf_editor::demos::DemoScene::SpeedGlow,
             "wave" | "force" => litsdf_editor::demos::DemoScene::WaveForce,
+            "walker" => litsdf_editor::demos::DemoScene::Walker,
+            "lemmings" => litsdf_editor::demos::DemoScene::Lemmings,
             _ => {
                 eprintln!("Unknown demo: {demo_name}. Options: gallery, boolean, modifier, mushroom, robot, sculpture, chain, pendulum, damping, speed, wave");
                 litsdf_editor::demos::DemoScene::PrimitiveGallery

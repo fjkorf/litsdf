@@ -82,7 +82,29 @@ pub enum SdfNode {
     /// 1D noise sampled at time * frequency. Organic random motion.
     Noise1D { frequency: f32 },
 
+    // ── Logic Nodes ──
+    /// Compare two values. Mode: 0=GT, 1=LT, 2=EQ, 3=GTE, 4=LTE. Output 1.0 or 0.0.
+    Compare { mode: u32 },
+
+    /// Pass Value through when Control > 0.5, else output 0.0.
+    Gate,
+
+    /// Boolean math. Op: 0=AND, 1=OR, 2=NOT (ignores B).
+    BoolMath { op: u32 },
+
     // ── Physics Input Nodes ──
+    /// Outputs 1.0 if the bone is touching any collider, 0.0 otherwise.
+    IsColliding,
+
+    /// Outputs the contact surface normal X/Y/Z.
+    ContactNormal,
+
+    /// Outputs downward raycast hit distance and normal.
+    RaycastDown,
+
+    /// Persistent per-bone float. Reads previous frame value, writes current.
+    StateVar { index: u32 },
+
     /// Outputs bone's linear velocity X/Y/Z from Avian physics.
     BoneVelocity,
 
@@ -128,6 +150,13 @@ impl SdfNode {
             Self::ExpImpulse { .. } => "Exp Impulse",
             Self::SmoothStep { .. } => "Smooth Step",
             Self::Noise1D { .. } => "Noise 1D",
+            Self::Compare { .. } => "Compare",
+            Self::Gate => "Gate",
+            Self::BoolMath { .. } => "Bool Math",
+            Self::IsColliding => "Is Colliding",
+            Self::ContactNormal => "Contact Normal",
+            Self::RaycastDown => "Raycast Down",
+            Self::StateVar { .. } => "State Var",
             Self::BoneVelocity => "Bone Velocity",
             Self::BoneAngularVelocity => "Bone Angular Vel",
             Self::BoneWorldPosition => "Bone World Pos",
@@ -159,6 +188,11 @@ impl SdfNode {
             Self::ExpImpulse { .. } => 2,    // value, k
             Self::SmoothStep { .. } => 3,    // value, edge0, edge1
             Self::Noise1D { .. } => 2,       // time, frequency
+            Self::Compare { .. } => 2,       // A, B
+            Self::Gate => 2,                // Value, Control
+            Self::BoolMath { .. } => 2,     // A, B
+            Self::IsColliding | Self::ContactNormal | Self::RaycastDown => 0,
+            Self::StateVar { .. } => 2,     // Write (bool), Value
             Self::BoneVelocity | Self::BoneAngularVelocity | Self::BoneWorldPosition | Self::BoneSpeed => 0,
             Self::ShapeOutput => 27,
             Self::BoneOutput => 13,   // transform(7) + force(3) + torque(3)
@@ -182,6 +216,9 @@ impl SdfNode {
             Self::EaseInOut { .. } | Self::Remap { .. } | Self::Abs | Self::Modulo { .. }
             | Self::ExpImpulse { .. } | Self::SmoothStep { .. } | Self::Noise1D { .. } => 1,
             Self::CosinePalette => 1,
+            Self::Compare { .. } | Self::Gate | Self::BoolMath { .. } | Self::IsColliding | Self::StateVar { .. } => 1,
+            Self::ContactNormal => 3,
+            Self::RaycastDown => 4,  // Distance, Normal X, Y, Z
             Self::BoneVelocity | Self::BoneAngularVelocity | Self::BoneWorldPosition => 3,
             Self::BoneSpeed => 1,
             Self::ShapeOutput | Self::BoneOutput => 0,
@@ -303,6 +340,10 @@ impl SdfNode {
                 26 => "Repeat Z",
                 _ => "?",
             },
+            Self::Compare { .. } => match index { 0 => "A", 1 => "B", _ => "?" },
+            Self::Gate => match index { 0 => "Value", 1 => "Control", _ => "?" },
+            Self::BoolMath { .. } => match index { 0 => "A", 1 => "B", _ => "?" },
+            Self::StateVar { .. } => match index { 0 => "Write", 1 => "Value", _ => "?" },
             Self::BoneOutput => match index {
                 0 => "Pos X",
                 1 => "Pos Y",
@@ -342,6 +383,9 @@ impl SdfNode {
                 2 => "Z",
                 _ => "?",
             },
+            Self::Compare { .. } | Self::Gate | Self::BoolMath { .. } | Self::IsColliding | Self::StateVar { .. } => "Result",
+            Self::ContactNormal => match index { 0 => "X", 1 => "Y", 2 => "Z", _ => "?" },
+            Self::RaycastDown => match index { 0 => "Distance", 1 => "Normal X", 2 => "Normal Y", 3 => "Normal Z", _ => "?" },
             Self::BoneVelocity | Self::BoneAngularVelocity | Self::BoneWorldPosition => match index {
                 0 => "X",
                 1 => "Y",
