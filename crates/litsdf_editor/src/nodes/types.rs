@@ -398,11 +398,29 @@ impl SdfNode {
     }
 }
 
-/// Pin type for type checking connections.
+/// Pin type for type checking connections and visual distinction.
+/// All types are f32 under the hood — Bool and Int are visual/semantic only.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PinType {
     Float,
     Vec3,
+    Bool,
+    Int,
+}
+
+impl PinType {
+    /// Whether two pin types can be connected (with auto-coercion).
+    pub fn compatible(from: PinType, to: PinType) -> bool {
+        use PinType::*;
+        matches!((from, to),
+            (Float, Float) | (Vec3, Vec3)
+            | (Bool, Bool) | (Int, Int)
+            // Auto-coerce between scalar types
+            | (Bool, Float) | (Float, Bool)
+            | (Int, Float) | (Float, Int)
+            | (Bool, Int) | (Int, Bool)
+        )
+    }
 }
 
 impl SdfNode {
@@ -410,6 +428,10 @@ impl SdfNode {
         match self {
             Self::Vec3Decompose => PinType::Vec3,
             Self::CosinePalette if index >= 1 => PinType::Vec3,
+            // Logic node inputs
+            Self::Gate if index == 1 => PinType::Bool, // Control
+            Self::BoolMath { .. } => PinType::Bool,
+            // Output sinks accept Float
             Self::ShapeOutput | Self::BoneOutput => PinType::Float,
             _ => PinType::Float,
         }
@@ -418,6 +440,8 @@ impl SdfNode {
     pub fn output_type(&self, _index: usize) -> PinType {
         match self {
             Self::ConstantVec3 { .. } | Self::Vec3Compose | Self::CosinePalette => PinType::Vec3,
+            // Logic/sensing nodes output Bool
+            Self::Compare { .. } | Self::BoolMath { .. } | Self::IsColliding => PinType::Bool,
             _ => PinType::Float,
         }
     }
@@ -425,5 +449,46 @@ impl SdfNode {
     /// Whether this node is a physics input (only meaningful in bone graphs).
     pub fn is_physics_node(&self) -> bool {
         matches!(self, Self::BoneVelocity | Self::BoneAngularVelocity | Self::BoneWorldPosition | Self::BoneSpeed)
+    }
+
+    /// Human-readable description for tooltips.
+    pub fn description(&self) -> &'static str {
+        match self {
+            Self::Time => "Outputs elapsed time in seconds.",
+            Self::SinOscillator { .. } => "Sine wave: amplitude * sin(time * frequency * TAU + phase).",
+            Self::Constant { .. } => "Outputs a constant float value.",
+            Self::ConstantVec3 { .. } => "Outputs a constant Vec3 value.",
+            Self::Add => "Adds two float values (A + B).",
+            Self::Multiply => "Multiplies two float values (A * B).",
+            Self::Mix { .. } => "Linear interpolation: A*(1-f) + B*f.",
+            Self::Clamp { .. } => "Clamps value to [min, max] range.",
+            Self::Negate => "Negates a float value (-V).",
+            Self::Vec3Compose => "Composes three floats into a Vec3.",
+            Self::Vec3Decompose => "Decomposes a Vec3 into X, Y, Z floats.",
+            Self::SquareWave { .. } => "Square wave oscillator (±amplitude).",
+            Self::TriangleWave { .. } => "Triangle wave oscillator.",
+            Self::SawtoothWave { .. } => "Sawtooth wave oscillator.",
+            Self::EaseInOut { .. } => "Cubic ease in/out curve.",
+            Self::Remap { .. } => "Remaps value from [in_min,in_max] to [out_min,out_max].",
+            Self::Abs => "Absolute value of a float.",
+            Self::Modulo { .. } => "Modulo (wrapping) operation.",
+            Self::CosinePalette => "Cosine color palette: a + b*cos(2π(c*t + d)).",
+            Self::ExpImpulse { .. } => "Exponential impulse: sharp attack, smooth decay.",
+            Self::SmoothStep { .. } => "Hermite smoothstep interpolation.",
+            Self::Noise1D { .. } => "1D hash-based noise sampled at time * frequency.",
+            Self::Compare { .. } => "Compares A and B. Outputs true (1) or false (0).",
+            Self::Gate => "Passes Value when Control is true, else outputs 0.",
+            Self::BoolMath { .. } => "Boolean logic: AND, OR, or NOT.",
+            Self::IsColliding => "True if this bone is touching any surface.",
+            Self::ContactNormal => "Surface contact normal direction (X, Y, Z).",
+            Self::RaycastDown => "Downward raycast: distance to ground and hit normal.",
+            Self::StateVar { .. } => "Persistent per-bone float. Stores value across frames.",
+            Self::BoneVelocity => "Bone linear velocity (X, Y, Z) from physics.",
+            Self::BoneAngularVelocity => "Bone angular velocity (X, Y, Z) from physics.",
+            Self::BoneWorldPosition => "Bone world position (X, Y, Z) from physics.",
+            Self::BoneSpeed => "Scalar speed (length of velocity vector).",
+            Self::ShapeOutput => "Writes values to shape properties (color, material, etc).",
+            Self::BoneOutput => "Writes values to bone transform and physics forces.",
+        }
     }
 }

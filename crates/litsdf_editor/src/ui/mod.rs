@@ -423,7 +423,7 @@ pub fn editor_ui(
                     });
                     panel_ui.separator();
                     let snarl = ui.node_graphs.entry(shape_id).or_insert_with(Snarl::new);
-                    snarl.show(&mut SdfNodeViewer, &style, egui::Id::new("sdf_node_editor"), panel_ui);
+                    snarl.show(&mut SdfNodeViewer { search_text: String::new() }, &style, egui::Id::new("sdf_node_editor"), panel_ui);
                 } else if let Some(bone_id) = scene.selected_bone {
                     // Bone node graph
                     if !bone_id.is_root() {
@@ -455,7 +455,7 @@ pub fn editor_ui(
                         });
                         panel_ui.separator();
                         let snarl = ui.bone_graphs.entry(bone_id).or_insert_with(Snarl::new);
-                        snarl.show(&mut SdfNodeViewer, &style, egui::Id::new("bone_node_editor"), panel_ui);
+                        snarl.show(&mut SdfNodeViewer { search_text: String::new() }, &style, egui::Id::new("bone_node_editor"), panel_ui);
                     } else {
                         panel_ui.label("Root bone has no node graph");
                     }

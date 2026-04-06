@@ -1,14 +1,18 @@
 use egui::{Color32, Ui};
-use egui_snarl::{InPin, OutPin, Snarl};
+use egui_snarl::{InPin, NodeId, OutPin, Snarl};
 use egui_snarl::ui::{PinInfo, SnarlViewer};
 
 use super::types::{PinType, SdfNode};
 
 const FLOAT_COLOR: Color32 = Color32::from_rgb(0x60, 0xa0, 0xe0);
 const VEC3_COLOR: Color32 = Color32::from_rgb(0xe0, 0xa0, 0x40);
+const BOOL_COLOR: Color32 = Color32::from_rgb(0x60, 0xe0, 0x80);
+const INT_COLOR: Color32 = Color32::from_rgb(0x60, 0xe0, 0xe0);
 const OUTPUT_COLOR: Color32 = Color32::from_rgb(0x40, 0xe0, 0x60);
 
-pub struct SdfNodeViewer;
+pub struct SdfNodeViewer {
+    pub search_text: String,
+}
 
 #[allow(refining_impl_trait)]
 impl SnarlViewer<SdfNode> for SdfNodeViewer {
@@ -145,8 +149,15 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
         let color = match pin_type {
             PinType::Float => FLOAT_COLOR,
             PinType::Vec3 => VEC3_COLOR,
+            PinType::Bool => BOOL_COLOR,
+            PinType::Int => INT_COLOR,
         };
-        PinInfo::circle().with_fill(color)
+        let shape = if pin_type == PinType::Bool {
+            PinInfo::triangle().with_fill(color)
+        } else {
+            PinInfo::circle().with_fill(color)
+        };
+        shape
     }
 
     fn show_output(&mut self, pin: &OutPin, ui: &mut Ui, snarl: &mut Snarl<SdfNode>) -> PinInfo {
@@ -174,10 +185,14 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
         let color = match pin_type {
             PinType::Float => FLOAT_COLOR,
             PinType::Vec3 => VEC3_COLOR,
+            PinType::Bool => BOOL_COLOR,
+            PinType::Int => INT_COLOR,
         };
 
         if matches!(snarl[pin.id.node], SdfNode::ShapeOutput) {
             PinInfo::circle().with_fill(OUTPUT_COLOR)
+        } else if pin_type == PinType::Bool {
+            PinInfo::triangle().with_fill(color)
         } else {
             PinInfo::circle().with_fill(color)
         }
@@ -187,8 +202,8 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
         let from_type = snarl[from.id.node].output_type(from.id.output);
         let to_type = snarl[to.id.node].input_type(to.id.input);
 
-        // Type check: only connect matching types
-        if from_type != to_type {
+        // Type check with auto-coercion (Bool↔Float, Int↔Float)
+        if !PinType::compatible(from_type, to_type) {
             return;
         }
 
@@ -198,6 +213,49 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
         }
 
         snarl.connect(from.id, to.id);
+    }
+
+    fn has_body(&mut self, node: &SdfNode) -> bool {
+        matches!(node, SdfNode::Compare { .. } | SdfNode::BoolMath { .. } | SdfNode::StateVar { .. })
+    }
+
+    fn show_body(&mut self, node: NodeId, _inputs: &[InPin], _outputs: &[OutPin], ui: &mut Ui, snarl: &mut Snarl<SdfNode>) {
+        match &mut snarl[node] {
+            SdfNode::Compare { mode } => {
+                let labels = ["A > B", "A < B", "A == B", "A >= B", "A <= B"];
+                let selected = labels.get(*mode as usize).unwrap_or(&"?");
+                egui::ComboBox::from_id_salt(format!("cmp_{node:?}"))
+                    .selected_text(*selected)
+                    .width(80.0)
+                    .show_ui(ui, |ui| {
+                        for (i, label) in labels.iter().enumerate() {
+                            ui.selectable_value(mode, i as u32, *label);
+                        }
+                    });
+            }
+            SdfNode::BoolMath { op } => {
+                let labels = ["AND", "OR", "NOT"];
+                let selected = labels.get(*op as usize).unwrap_or(&"?");
+                egui::ComboBox::from_id_salt(format!("bool_{node:?}"))
+                    .selected_text(*selected)
+                    .width(60.0)
+                    .show_ui(ui, |ui| {
+                        for (i, label) in labels.iter().enumerate() {
+                            ui.selectable_value(op, i as u32, *label);
+                        }
+                    });
+            }
+            SdfNode::StateVar { index } => {
+                ui.add(egui::DragValue::new(index).range(0..=99).prefix("Var #"));
+            }
+            _ => {}
+        }
+    }
+
+    fn has_on_hover_popup(&mut self, _node: &SdfNode) -> bool { true }
+
+    fn show_on_hover_popup(&mut self, node: NodeId, _inputs: &[InPin], _outputs: &[OutPin], ui: &mut Ui, snarl: &mut Snarl<SdfNode>) {
+        ui.label(snarl[node].description());
     }
 
     fn has_graph_menu(&mut self, _pos: egui::Pos2, _snarl: &mut Snarl<SdfNode>) -> bool {
@@ -321,32 +379,16 @@ impl SnarlViewer<SdfNode> for SdfNodeViewer {
         ui.separator();
 
         ui.menu_button("Logic", |ui| {
-            if ui.button("Compare (>)").clicked() {
+            if ui.button("Compare").clicked() {
                 snarl.insert_node(pos, SdfNode::Compare { mode: 0 });
-                ui.close();
-            }
-            if ui.button("Compare (<)").clicked() {
-                snarl.insert_node(pos, SdfNode::Compare { mode: 1 });
-                ui.close();
-            }
-            if ui.button("Compare (==)").clicked() {
-                snarl.insert_node(pos, SdfNode::Compare { mode: 2 });
                 ui.close();
             }
             if ui.button("Gate").clicked() {
                 snarl.insert_node(pos, SdfNode::Gate);
                 ui.close();
             }
-            if ui.button("Bool Math (AND)").clicked() {
+            if ui.button("Bool Math").clicked() {
                 snarl.insert_node(pos, SdfNode::BoolMath { op: 0 });
-                ui.close();
-            }
-            if ui.button("Bool Math (OR)").clicked() {
-                snarl.insert_node(pos, SdfNode::BoolMath { op: 1 });
-                ui.close();
-            }
-            if ui.button("Bool Math (NOT)").clicked() {
-                snarl.insert_node(pos, SdfNode::BoolMath { op: 2 });
                 ui.close();
             }
             if ui.button("State Variable").clicked() {
