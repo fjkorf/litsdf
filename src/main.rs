@@ -37,6 +37,7 @@ fn main() {
             "wave" | "force" => litsdf_editor::demos::DemoScene::WaveForce,
             "walker" => litsdf_editor::demos::DemoScene::Walker,
             "lemmings" => litsdf_editor::demos::DemoScene::Lemmings,
+            "ik" | "ikwalker" => litsdf_editor::demos::DemoScene::IkWalker,
             _ => {
                 eprintln!("Unknown demo: {demo_name}. Options: gallery, boolean, modifier, mushroom, robot, sculpture, chain, pendulum, damping, speed, wave");
                 litsdf_editor::demos::DemoScene::PrimitiveGallery

@@ -11,6 +11,7 @@ mod speed_glow;
 mod wave_force;
 mod walker;
 mod lemmings;
+mod ik_walker;
 
 use std::collections::HashMap;
 use egui_snarl::Snarl;
@@ -45,6 +46,7 @@ pub enum DemoScene {
     WaveForce,
     Walker,
     Lemmings,
+    IkWalker,
 }
 
 impl DemoScene {
@@ -63,6 +65,7 @@ impl DemoScene {
             Self::WaveForce => "Wave Force",
             Self::Walker => "Walker",
             Self::Lemmings => "Lemmings",
+            Self::IkWalker => "IK Walker",
         }
     }
 
@@ -81,6 +84,7 @@ impl DemoScene {
             Self::WaveForce,
             Self::Walker,
             Self::Lemmings,
+            Self::IkWalker,
         ]
     }
 }
@@ -100,6 +104,7 @@ pub fn load_demo(demo: DemoScene) -> DemoResult {
         DemoScene::WaveForce => wave_force::create(),
         DemoScene::Walker => walker::create(),
         DemoScene::Lemmings => lemmings::create(),
+        DemoScene::IkWalker => ik_walker::create(),
     }
 }
 

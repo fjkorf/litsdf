@@ -1292,6 +1292,7 @@ pub fn editor_ui(
     }
     // Evaluate bone graphs
     scene.force_outputs.clear();
+    let mut ik_targets: Vec<(BoneId, [f32; 3], f32)> = Vec::new();
     for (bone_id, snarl) in &ui.bone_graphs {
         if snarl.node_ids().next().is_none() { continue; }
         let physics_reading = scene.physics_readings.get(bone_id);
@@ -1314,6 +1315,15 @@ pub fn editor_ui(
                 ],
             });
         }
+        // Collect IK targets
+        let has_ik = outputs.ik_target_x.is_some() || outputs.ik_target_y.is_some() || outputs.ik_target_z.is_some();
+        if has_ik {
+            ik_targets.push((*bone_id, [
+                outputs.ik_target_x.unwrap_or(0.0),
+                outputs.ik_target_y.unwrap_or(0.0),
+                outputs.ik_target_z.unwrap_or(0.0),
+            ], outputs.ik_weight.unwrap_or(1.0)));
+        }
         if let Some(bone) = scene.scene.root_bone.find_bone_mut(*bone_id) {
             let mut changed = false;
             if let Some(v) = outputs.tx { bone.transform.translation[0] = v; changed = true; }
@@ -1327,6 +1337,36 @@ pub fn editor_ui(
                 scene.dirty = true;
                 any_graph_active = true;
             }
+        }
+    }
+
+    // ── IK solve (after graph eval, before physics) ──
+    if !ik_targets.is_empty() {
+        let overrides = std::collections::HashMap::new();
+        let world_transforms = litsdf_core::scene::compute_bone_world_transforms(
+            &scene.scene.root_bone, bevy::math::Mat4::IDENTITY, &overrides,
+        );
+        let requests: Vec<litsdf_core::ik::IkRequest> = ik_targets.iter().map(|(id, target, weight)| {
+            let chain_len = scene.scene.root_bone.find_bone(*id)
+                .map(|b| b.physics.ik_chain_length).unwrap_or(0);
+            litsdf_core::ik::IkRequest {
+                chain: litsdf_core::ik::build_ik_chain(&scene.scene.root_bone, *id, chain_len),
+                target: *target,
+                pole_vector: None,
+                max_iterations: 5,
+                tolerance: 0.01,
+                weight: *weight,
+            }
+        }).collect();
+        let results = litsdf_core::ik::solve_ik(&scene.scene.root_bone, &requests, &world_transforms);
+        for (bone_id, transform) in &results {
+            if let Some(bone) = scene.scene.root_bone.find_bone_mut(*bone_id) {
+                bone.transform = transform.clone();
+            }
+        }
+        if !results.is_empty() {
+            scene.dirty = true;
+            any_graph_active = true;
         }
     }
 

@@ -68,11 +68,13 @@ pub struct BonePhysicsProps {
     pub damping: f32,
     #[serde(default, skip_serializing_if = "RotationLimits::is_default")]
     pub rotation_limits: RotationLimits,
+    #[serde(default, skip_serializing_if = "is_zero_u32")]
+    pub ik_chain_length: u32,
 }
 
 impl Default for BonePhysicsProps {
     fn default() -> Self {
-        Self { mass: 0.0, damping: 0.95, rotation_limits: RotationLimits::default() }
+        Self { mass: 0.0, damping: 0.95, rotation_limits: RotationLimits::default(), ik_chain_length: 0 }
     }
 }
 

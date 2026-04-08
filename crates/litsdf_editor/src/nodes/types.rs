@@ -201,7 +201,7 @@ impl SdfNode {
             Self::BoneVelocity | Self::BoneAngularVelocity | Self::BoneWorldPosition | Self::BoneSpeed => 0,
             Self::Expression { var_count, .. } => *var_count as usize,
             Self::ShapeOutput => 27,
-            Self::BoneOutput => 13,   // transform(7) + force(3) + torque(3)
+            Self::BoneOutput => 17,   // transform(7) + force(3) + torque(3) + ik_target(3) + ik_weight(1)
         }
     }
 
@@ -366,6 +366,10 @@ impl SdfNode {
                 10 => "Torque X",
                 11 => "Torque Y",
                 12 => "Torque Z",
+                13 => "IK Target X",
+                14 => "IK Target Y",
+                15 => "IK Target Z",
+                16 => "IK Weight",
                 _ => "?",
             },
             _ => "In",

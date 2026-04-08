@@ -48,11 +48,13 @@ pub struct BonePhysicsProps {
     pub damping: f32,
     #[serde(default, skip_serializing_if = "RotationLimits::is_default")]
     pub rotation_limits: RotationLimits,
+    #[serde(default, skip_serializing_if = "is_zero_u32")]
+    pub ik_chain_length: u32,
 }
 ```
 
 
-#### `SdfBone` (line 86)
+#### `SdfBone` (line 88)
 
 ```rust
 pub struct SdfBone {
@@ -72,7 +74,7 @@ pub struct SdfBone {
 ```
 
 
-#### `SceneSettings` (line 325)
+#### `SceneSettings` (line 327)
 
 ```rust
 pub struct SceneSettings {
@@ -118,7 +120,7 @@ pub struct SceneSettings {
 ```
 
 
-#### `SdfScene` (line 422)
+#### `SdfScene` (line 424)
 
 ```rust
 pub struct SdfScene {
@@ -136,7 +138,7 @@ pub struct SdfScene {
 ```
 
 
-#### `SceneInfo` (line 440)
+#### `SceneInfo` (line 442)
 
 ```rust
 pub struct SceneInfo {
@@ -148,7 +150,7 @@ pub struct SceneInfo {
 
 Summary information about a scene.
 
-#### `SceneInfo` (line 440)
+#### `SceneInfo` (line 442)
 
 ```rust
 pub struct SceneInfo {
@@ -159,7 +161,7 @@ pub struct SceneInfo {
 ```
 
 
-#### `SdfShape` (line 527)
+#### `SdfShape` (line 529)
 
 ```rust
 pub struct SdfShape {
@@ -180,7 +182,7 @@ pub struct SdfShape {
 ```
 
 
-#### `ShapeTransform` (line 561)
+#### `ShapeTransform` (line 563)
 
 ```rust
 pub struct ShapeTransform {
@@ -194,7 +196,7 @@ pub struct ShapeTransform {
 ```
 
 
-#### `ShapeMaterial` (line 585)
+#### `ShapeMaterial` (line 587)
 
 ```rust
 pub struct ShapeMaterial {
@@ -253,7 +255,7 @@ pub enum ColliderApprox {
 ```
 
 
-#### `SdfPrimitive` (line 544)
+#### `SdfPrimitive` (line 546)
 
 ```rust
 pub enum SdfPrimitive {
@@ -274,7 +276,7 @@ pub enum SdfPrimitive {
 ```
 
 
-#### `CombinationOp` (line 639)
+#### `CombinationOp` (line 641)
 
 ```rust
 pub enum CombinationOp {
@@ -290,7 +292,7 @@ pub enum CombinationOp {
 ```
 
 
-#### `ShapeModifier` (line 659)
+#### `ShapeModifier` (line 661)
 
 ```rust
 pub enum ShapeModifier {
@@ -327,84 +329,84 @@ pub enum ShapeModifier {
 ```
 
 
-#### `is_default` (line 80)
+#### `is_default` (line 82)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `root` (line 102)
+#### `root` (line 104)
 
 ```rust
     pub fn root() -> Self
 ```
 
 
-#### `new` (line 114)
+#### `new` (line 116)
 
 ```rust
     pub fn new(name: impl Into<String>) -> Self
 ```
 
 
-#### `find_bone` (line 126)
+#### `find_bone` (line 128)
 
 ```rust
     pub fn find_bone(&self, id: BoneId) -> Option<&SdfBone>
 ```
 
 
-#### `find_bone_mut` (line 134)
+#### `find_bone_mut` (line 136)
 
 ```rust
     pub fn find_bone_mut(&mut self, id: BoneId) -> Option<&mut SdfBone>
 ```
 
 
-#### `find_shape` (line 142)
+#### `find_shape` (line 144)
 
 ```rust
     pub fn find_shape(&self, id: ShapeId) -> Option<(&SdfShape, BoneId)>
 ```
 
 
-#### `find_shape_mut` (line 152)
+#### `find_shape_mut` (line 154)
 
 ```rust
     pub fn find_shape_mut(&mut self, id: ShapeId) -> Option<(&mut SdfShape, BoneId)>
 ```
 
 
-#### `find_shape_by_name` (line 163)
+#### `find_shape_by_name` (line 165)
 
 ```rust
     pub fn find_shape_by_name(&self, name: &str) -> Option<(&SdfShape, BoneId)>
 ```
 
 
-#### `all_shapes` (line 173)
+#### `all_shapes` (line 175)
 
 ```rust
     pub fn all_shapes(&self) -> Vec<(&SdfShape, BoneId)>
 ```
 
 
-#### `remove_shape` (line 184)
+#### `remove_shape` (line 186)
 
 ```rust
     pub fn remove_shape(&mut self, id: ShapeId) -> bool
 ```
 
 
-#### `remove_bone` (line 194)
+#### `remove_bone` (line 196)
 
 ```rust
     pub fn remove_bone(&mut self, id: BoneId) -> bool
 ```
 
 
-#### `duplicate_deep` (line 208)
+#### `duplicate_deep` (line 210)
 
 ```rust
     pub fn duplicate_deep(&self) -> Self
@@ -412,14 +414,14 @@ pub enum ShapeModifier {
 
 Deep clone with fresh UUIDs for this bone, all children, and all shapes.
 
-#### `duplicate_deep` (line 208)
+#### `duplicate_deep` (line 210)
 
 ```rust
     pub fn duplicate_deep(&self) -> Self
 ```
 
 
-#### `restore_names` (line 230)
+#### `restore_names` (line 232)
 
 ```rust
     fn restore_names(&mut self, original: &SdfBone)
@@ -427,21 +429,21 @@ Deep clone with fresh UUIDs for this bone, all children, and all shapes.
 
 Restore original names after duplicate_deep (only top-level gets " Copy").
 
-#### `find_bone_by_name` (line 240)
+#### `find_bone_by_name` (line 242)
 
 ```rust
     pub fn find_bone_by_name(&self, name: &str) -> Option<&SdfBone>
 ```
 
 
-#### `find_bone_by_name_mut` (line 248)
+#### `find_bone_by_name_mut` (line 250)
 
 ```rust
     pub fn find_bone_by_name_mut(&mut self, name: &str) -> Option<&mut SdfBone>
 ```
 
 
-#### `reparent_shape` (line 257)
+#### `reparent_shape` (line 259)
 
 ```rust
     pub fn reparent_shape(&mut self, shape_id: ShapeId, target_bone_id: BoneId) -> bool
@@ -449,21 +451,21 @@ Restore original names after duplicate_deep (only top-level gets " Copy").
 
 Remove a shape from anywhere in the tree and add it to the target bone.
 
-#### `reparent_shape` (line 257)
+#### `reparent_shape` (line 259)
 
 ```rust
     pub fn reparent_shape(&mut self, shape_id: ShapeId, target_bone_id: BoneId) -> bool
 ```
 
 
-#### `extract_shape` (line 267)
+#### `extract_shape` (line 269)
 
 ```rust
     pub fn extract_shape(&mut self, id: ShapeId) -> Option<SdfShape>
 ```
 
 
-#### `reparent_bone` (line 279)
+#### `reparent_bone` (line 281)
 
 ```rust
     pub fn reparent_bone(&mut self, bone_id: BoneId, target_bone_id: BoneId) -> bool
@@ -472,21 +474,21 @@ Remove a shape from anywhere in the tree and add it to the target bone.
 Remove a bone from anywhere in the tree and add it as a child of target.
 Returns false if bone_id == target or target is a descendant of bone_id (cycle).
 
-#### `reparent_bone` (line 279)
+#### `reparent_bone` (line 281)
 
 ```rust
     pub fn reparent_bone(&mut self, bone_id: BoneId, target_bone_id: BoneId) -> bool
 ```
 
 
-#### `extract_bone` (line 291)
+#### `extract_bone` (line 293)
 
 ```rust
     pub fn extract_bone(&mut self, id: BoneId) -> Option<SdfBone>
 ```
 
 
-#### `bone_count` (line 302)
+#### `bone_count` (line 304)
 
 ```rust
     pub fn bone_count(&self) -> usize
@@ -494,14 +496,14 @@ Returns false if bone_id == target or target is a descendant of bone_id (cycle).
 
 Count all descendant bones (not including self).
 
-#### `bone_count` (line 302)
+#### `bone_count` (line 304)
 
 ```rust
     pub fn bone_count(&self) -> usize
 ```
 
 
-#### `shape_count` (line 307)
+#### `shape_count` (line 309)
 
 ```rust
     pub fn shape_count(&self) -> usize
@@ -509,14 +511,14 @@ Count all descendant bones (not including self).
 
 Count all shapes in this bone and all descendants.
 
-#### `shape_count` (line 307)
+#### `shape_count` (line 309)
 
 ```rust
     pub fn shape_count(&self) -> usize
 ```
 
 
-#### `has_physics_bones` (line 312)
+#### `has_physics_bones` (line 314)
 
 ```rust
     pub fn has_physics_bones(bone: &SdfBone) -> bool
@@ -524,28 +526,28 @@ Count all shapes in this bone and all descendants.
 
 Check if any bone in this subtree has physics mass > 0.
 
-#### `has_physics_bones` (line 312)
+#### `has_physics_bones` (line 314)
 
 ```rust
     pub fn has_physics_bones(bone: &SdfBone) -> bool
 ```
 
 
-#### `reset_transform` (line 317)
+#### `reset_transform` (line 319)
 
 ```rust
     pub fn reset_transform(&mut self)
 ```
 
 
-#### `is_default` (line 416)
+#### `is_default` (line 418)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `new` (line 454)
+#### `new` (line 456)
 
 ```rust
     pub fn new(name: impl Into<String>) -> Self
@@ -553,21 +555,21 @@ Check if any bone in this subtree has physics mass > 0.
 
 Create an empty scene with a root bone and default light.
 
-#### `new` (line 454)
+#### `new` (line 456)
 
 ```rust
     pub fn new(name: impl Into<String>) -> Self
 ```
 
 
-#### `info` (line 465)
+#### `info` (line 467)
 
 ```rust
     pub fn info(&self) -> SceneInfo
 ```
 
 
-#### `tree_string` (line 474)
+#### `tree_string` (line 476)
 
 ```rust
     pub fn tree_string(&self) -> String
@@ -575,84 +577,84 @@ Create an empty scene with a root bone and default light.
 
 ASCII tree representation of the scene hierarchy.
 
-#### `tree_string` (line 474)
+#### `tree_string` (line 476)
 
 ```rust
     pub fn tree_string(&self) -> String
 ```
 
 
-#### `default_scene` (line 507)
+#### `default_scene` (line 509)
 
 ```rust
     pub fn default_scene() -> Self
 ```
 
 
-#### `is_default` (line 571)
+#### `is_default` (line 573)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `is_default` (line 615)
+#### `is_default` (line 617)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `is_default` (line 655)
+#### `is_default` (line 657)
 
 ```rust
     pub fn is_default(&self) -> bool
 ```
 
 
-#### `duplicate` (line 669)
+#### `duplicate` (line 671)
 
 ```rust
     pub fn duplicate(&self) -> Self
 ```
 
 
-#### `reset_transform` (line 676)
+#### `reset_transform` (line 678)
 
 ```rust
     pub fn reset_transform(&mut self)
 ```
 
 
-#### `clear_modifiers` (line 680)
+#### `clear_modifiers` (line 682)
 
 ```rust
     pub fn clear_modifiers(&mut self)
 ```
 
 
-#### `default_sphere` (line 684)
+#### `default_sphere` (line 686)
 
 ```rust
     pub fn default_sphere() -> Self
 ```
 
 
-#### `new` (line 697)
+#### `new` (line 699)
 
 ```rust
     pub fn new(name: impl Into<String>, primitive: SdfPrimitive) -> Self
 ```
 
 
-#### `label` (line 712)
+#### `label` (line 714)
 
 ```rust
     pub fn label(&self) -> &'static str
 ```
 
 
-#### `default_for` (line 730)
+#### `default_for` (line 732)
 
 ```rust
     pub fn default_for(name: &str) -> Self
@@ -2448,7 +2450,7 @@ Stratification = (outgoing + 1) / (incoming + 1). Low = foundational, high = lea
 
 | Module | Out | In | Strat | Role |
 |--------|-----|-----|-------|------|
-| `core::models` | 0 | 36 | 0.03 | foundation |
+| `core::models` | 0 | 38 | 0.03 | foundation |
 | `render::camera` | 0 | 3 | 0.25 | foundation |
 | `core::scene` | 1 | 5 | 0.33 | foundation |
 | `render::scene_sync` | 3 | 11 | 0.33 | foundation |
@@ -2465,11 +2467,13 @@ Stratification = (outgoing + 1) / (incoming + 1). Low = foundational, high = lea
 | `editor::nodes::viewer` | 0 | 0 | 1.00 | core |
 | `editor::ui::panel_tests` | 0 | 0 | 1.00 | core |
 | `editor::ui::shortcuts` | 0 | 0 | 1.00 | core |
+| `core::ik` | 1 | 0 | 2.00 | connector |
 | `core::sdf` | 1 | 0 | 2.00 | connector |
 | `editor::demos::abstract_sculpture` | 1 | 0 | 2.00 | connector |
 | `editor::demos::boolean_sampler` | 1 | 0 | 2.00 | connector |
 | `editor::demos::damping_lab` | 1 | 0 | 2.00 | connector |
 | `editor::demos::hanging_chain` | 1 | 0 | 2.00 | connector |
+| `editor::demos::ik_walker` | 1 | 0 | 2.00 | connector |
 | `editor::demos::lemmings` | 1 | 0 | 2.00 | connector |
 | `editor::demos::mod` | 1 | 0 | 2.00 | connector |
 | `editor::demos::modifier_parade` | 1 | 0 | 2.00 | connector |

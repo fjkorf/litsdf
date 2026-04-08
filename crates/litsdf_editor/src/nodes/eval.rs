@@ -74,6 +74,11 @@ pub struct BoneOutputValues {
     pub torque_x: Option<f32>,
     pub torque_y: Option<f32>,
     pub torque_z: Option<f32>,
+    // IK target
+    pub ik_target_x: Option<f32>,
+    pub ik_target_y: Option<f32>,
+    pub ik_target_z: Option<f32>,
+    pub ik_weight: Option<f32>,
 }
 
 /// Physics state readable by node graphs (passed from Avian via SdfSceneState).
@@ -116,6 +121,10 @@ pub fn evaluate_bone_graph(
                     10 => result.torque_x = Some(f),
                     11 => result.torque_y = Some(f),
                     12 => result.torque_z = Some(f),
+                    13 => result.ik_target_x = Some(f),
+                    14 => result.ik_target_y = Some(f),
+                    15 => result.ik_target_z = Some(f),
+                    16 => result.ik_weight = Some(f),
                     _ => {}
                 }
             }
