@@ -43,7 +43,7 @@ The generated `knowledge/api/API.md` covers all four crates with full type defin
 - `knowledge/node-architecture.md` — Node editor architecture design document
 - `knowledge/shader-codegen.md` — Per-pixel shader code generation research
 - `knowledge/pbr-lighting.md` — PBR (Cook-Torrance) lighting upgrade research
-- `knowledge/demo-scenes.md` — 9 demo scenes (6 visual + 3 physics), feature coverage, loading instructions
+- `knowledge/demo-scenes.md` — 15 demo scenes (6 visual + 5 physics + 2 node↔physics + 2 game logic + 1 IK), feature coverage, loading instructions
 - `knowledge/litui-feature-request.md` — litui numeric config features (all 5 implemented)
 - `knowledge/pbr-lighting.md` also covers gradient sky environment upgrade
 
@@ -53,7 +53,7 @@ The generated `knowledge/api/API.md` covers all four crates with full type defin
 cargo run --bin litsdf                       # editor
 cargo run --bin litsdf-viewer -- scene.yaml  # viewer
 cargo run -p litsdf-cli -- scene info s.yaml # CLI
-cargo test --workspace                       # 76 tests
+cargo test --workspace                       # 95 tests
 LITSDF_SCREENSHOT=path.png cargo run --bin litsdf  # screenshot
 ```
 
@@ -87,3 +87,7 @@ LITSDF_SCREENSHOT=path.png cargo run --bin litsdf  # screenshot
 - `BonePhysicsReading` (position, velocity) flows Avian→node graphs. `BoneForceOutputs` flows node graphs→Avian.
 - `BoneOutput` has 13 pins (7 transform + 3 force + 3 torque). 4 physics input nodes: BoneVelocity, BoneAngularVelocity, BoneWorldPosition, BoneSpeed.
 - Custom physics solver (`physics.rs`) remains as fallback when `use_avian = false`.
+- IK solver (`ik.rs`) is pure-data in litsdf_core (no Bevy). FABRIK + analytical 2-bone. Called after node graph eval, before physics.
+- `BoneOutput` has 17 pins (7 transform + 3 force + 3 torque + 3 IK target + 1 IK weight). `ik_chain_length` on BonePhysicsProps controls solver: 0=auto, 2=analytical, N=FABRIK.
+- Node editor has 37 node types across 7 categories: generators, oscillators, math, logic, sensing, physics I/O, output. Plus Expression node with inline math parser.
+- Scene settings live in a modal window (Cmd+, or View > Scene Settings), NOT in the Properties panel.

@@ -1,10 +1,10 @@
 # Testing Strategy
 
-## Unit Tests (76 tests, cargo test --workspace)
+## Unit Tests (95 tests, cargo test --workspace)
 
 Tests are distributed across crates:
-- `litsdf_core`: 39 tests (models, scene, persistence, physics)
-- `litsdf_editor`: 17 tests (UI, undo, node graph, project persistence, presets, demo scenes)
+- `litsdf_core`: 46 tests (models, scene, persistence, physics, IK solver)
+- `litsdf_editor`: 29 tests (UI, undo, node graph, project persistence, presets, demo scenes, panel layout, expression parser)
 - `litsdf_render`: 4 tests (shader struct size, codegen default scene, codegen empty scene, topology hash)
 - `litsdf_cli`: 16 integration tests (CLI workflow end-to-end)
 
@@ -43,6 +43,31 @@ Tests are distributed across crates:
 - `collider_capsule` — Capsule shape → ColliderApprox::Capsule
 - `collider_fallback_bounding` — No shapes → fallback sphere with min radius
 - `damping_conversion` — damping_to_avian maps 0.95→~3, 0.70→~21
+
+### IK Solver Tests (ik.rs)
+- `build_chain_simple` — 3-bone linear chain, verify root-to-tip order
+- `build_chain_auto_stops_at_kinematic` — Chain stops at first kinematic bone
+- `fabrik_reaches_target` — FABRIK converges to reachable target within tolerance
+- `fabrik_unreachable` — Chain stretches fully toward unreachable target
+- `two_bone_basic` — Analytical 2-bone solver produces valid quaternions
+- `rotation_limits_clamped` — Per-axis rotation limits respected
+- `solve_ik_integration` — Full integration: bone tree → solve → valid transforms
+
+### Expression Parser Tests (expression.rs)
+- `literal` — Parse "42.5", evaluate to 42.5
+- `arithmetic` — Parse "3 + 4 * 2", evaluate to 11.0 (precedence)
+- `variables` — Parse "a * 0.5 + b", 2 variables, evaluate with inputs
+- `functions` — Parse "sin(0) + abs(-5)", evaluate to 5.0
+- `nested` — Parse "max(a, min(b, 10))", nested function calls
+- `negation` — Parse "-a + 1", unary negation
+
+### Panel Layout Tests (panel_tests.rs)
+- `left_panel_exists_and_positioned` — Left panel starts at x=0 with positive width
+- `right_panel_exists_and_positioned` — Right panel near right screen edge
+- `node_editor_panel_exists` — Node editor in lower half with positive height
+- `node_editor_above_status_bar` — Correct stacking order (status at edge)
+- `all_panels_leave_viewport_space` — All panels together leave positive viewport area
+- `status_bar_at_bottom` — Status bar at window bottom edge
 
 ### Scene Tests (scene.rs)
 - `flatten_default_scene` — Default scene flattens to correct shape count and types

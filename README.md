@@ -23,6 +23,9 @@ Six built-in demo scenes accessible via **File > Demo Scenes**:
 | **Damping Lab** | Three chains comparing damping values (0.998, 0.99, 0.95) |
 | **Speed Glow** | Physics→node: pendulum ball color shifts with BoneSpeed |
 | **Wave Force** | Node→physics: oscillating force drives sphere via BoneOutput Force Y |
+| **Walker** | Game logic: walks when grounded, brakes at edges (Compare, Gate, IsColliding) |
+| **Lemmings** | 3 walkers on split platform with gap, reusable behavior graphs |
+| **IK Walker** | FABRIK IK: bipedal character with 2-bone IK legs, procedural stride |
 
 ## Features
 
@@ -37,8 +40,10 @@ Six built-in demo scenes accessible via **File > Demo Scenes**:
 ### Node Editor
 - **25 node types** — oscillators (sin, square, triangle, sawtooth), math (add, multiply, mix, clamp, abs, modulo, ease, remap), animation (exponential impulse, smoothstep, noise 1D), cosine palette, vec3 ops, physics inputs
 - **27-pin ShapeOutput** — drives position, rotation, scale, color, material, noise, and all modifier params
-- **13-pin BoneOutput** — drives bone transforms + physics forces/torques
+- **17-pin BoneOutput** — drives bone transforms + physics forces/torques + IK targets
 - **4 physics input nodes** — BoneVelocity, BoneAngularVelocity, BoneWorldPosition, BoneSpeed
+- **Expression node** — type `a * 0.5 + sin(b)`, variables become input pins
+- **7 logic/sensing nodes** — Compare, Gate, BoolMath, IsColliding, ContactNormal, RaycastDown, StateVar
 - **Graph persistence** — ProjectFile saves scene + node graphs in single YAML
 - **7 presets** — bob, spin, pulse, orbit, color cycle + bone variants
 - **Color-coded nodes** by category
@@ -52,6 +57,9 @@ Six built-in demo scenes accessible via **File > Demo Scenes**:
 - **Joint constraints** — DistanceJoint between parent-child bones for pendulum-like swinging
 - **Play/pause/reset** — Space to toggle, managed animation clock, rest pose snapshot
 - **Blending** — kinematic bones (mass=0) driven by animation, dynamic bones (mass>0) driven by physics
+- **FABRIK IK solver** — pure-data inverse kinematics in litsdf_core (no Bevy dependency)
+- **Analytical 2-bone** — O(1) law-of-cosines solver for limbs (arms, legs)
+- **IK target pins** — BoneOutput IK Target X/Y/Z + Weight pins drive foot/hand placement
 
 ### Editor
 - **Menu bar** — File, Edit, Add, View with keyboard shortcut hints
@@ -65,6 +73,11 @@ Six built-in demo scenes accessible via **File > Demo Scenes**:
 - **Render sequence** — export numbered PNGs for video assembly
 - **Help overlay** — press ? for keyboard shortcut reference
 - **Scene descriptions** — popup on demo/file load explaining featured concepts
+- **Scene settings modal** — Cmd+, opens dedicated window for lighting, environment, physics
+- **Node search** — type to filter in right-click add menu
+- **Pin value preview** — connected pins show current value in real-time
+- **Node tooltips** — hover any node for description
+- **Viewport centering** — shapes centered between panels regardless of panel sizing
 
 ### CLI
 - **25 subcommands** across scene, bone, shape, and modifier operations
@@ -76,7 +89,7 @@ Six built-in demo scenes accessible via **File > Demo Scenes**:
 cargo run --bin litsdf                                      # editor
 cargo run --bin litsdf-viewer -- scene.yaml                 # viewer
 cargo run -p litsdf-cli -- scene info scene.yaml            # CLI
-cargo test --workspace                                      # 76+ tests
+cargo test --workspace                                      # 95 tests
 LITSDF_SCREENSHOT=out.png cargo run --bin litsdf            # screenshot
 LITSDF_RENDER_SEQUENCE=frames,60,30 cargo run --bin litsdf  # render 60 frames
 ```

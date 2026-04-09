@@ -1,6 +1,6 @@
 # Demo Scenes
 
-Nine built-in demo scenes showcase different litsdf features. Accessible via **File > Demo Scenes** menu or the `LITSDF_DEMO` environment variable.
+15 built-in demo scenes showcase different litsdf features. Accessible via **File > Demo Scenes** menu or the `LITSDF_DEMO` environment variable.
 
 ## Loading Demos
 
@@ -13,7 +13,7 @@ LITSDF_DEMO=robot LITSDF_SCREENSHOT=robot.png cargo run --bin litsdf
 LITSDF_DEMO=chain LITSDF_SCREENSHOT_FRAME=60 LITSDF_SCREENSHOT=chain.png cargo run --bin litsdf
 ```
 
-Valid names: `gallery`, `boolean`, `modifier`, `mushroom`, `robot`, `sculpture`, `chain`, `pendulum`, `damping`, `speed`, `wave`
+Valid names: `gallery`, `boolean`, `modifier`, `mushroom`, `robot`, `sculpture`, `chain`, `pendulum`, `damping`, `speed`, `wave`, `walker`, `lemmings`, `ik`
 
 Each demo has a description that appears in a popup when loaded.
 
@@ -115,9 +115,28 @@ A sphere driven by oscillating upward force from the node graph. SinOscillator �
 
 **Demonstrates:** Physics output nodes, BoneOutput Force pins, node→physics force application
 
+### 12. Walker (Game Logic)
+A character walks forward when grounded (IsColliding → Gate → Force X) and brakes at edges (RaycastDown → Compare → Gate).
+
+**Demonstrates:** Logic nodes (Compare, Gate), sensing nodes (IsColliding, RaycastDown), physics force output
+
+### 13. Lemmings (Game Logic)
+Three color-coded walkers on a split platform with a gap. Each runs the same walker graph independently. Ground plane enabled.
+
+**Demonstrates:** Multi-character node graphs, reusable behavior logic, ground plane collision
+
+### 14. IK Walker (Inverse Kinematics)
+Bipedal character with 2-bone IK legs. Body bobs vertically while feet follow oscillating IK targets with alternating stride. FABRIK solver adjusts knee/hip rotations each frame.
+
+- Body: SinOscillator → Y bob (amplitude 0.05, freq 2.0)
+- Feet: Phase-offset SinOscillator → IK Target X (stride), abs(sin) → step height → IK Target Y
+- `ik_chain_length = 2` on each foot (analytical 2-bone solver)
+
+**Demonstrates:** FABRIK IK solver, BoneOutput IK Target pins, 2-bone analytical solver, procedural walk cycle
+
 ## Feature Coverage
 
-Between the 11 demos, every major feature is demonstrated:
+Between the 15 demos, every major feature is demonstrated:
 - All 13 primitives
 - All 8 combination operations
 - All 6 modifiers
@@ -132,6 +151,9 @@ Between the 11 demos, every major feature is demonstrated:
 - Animation + physics blending
 - Physics input nodes (BoneSpeed → material color)
 - Physics output nodes (SinOscillator → Force Y)
+- Game logic nodes (Compare, Gate, IsColliding, RaycastDown)
+- FABRIK inverse kinematics (2-bone analytical + multi-bone)
+- Procedural walk cycle (phase-offset oscillators + IK foot placement)
 
 ## Implementation
 
